@@ -56,6 +56,14 @@ e1,e2 = np.linalg.eig(m) # eigenvalues and eigenvectors
  np.linalg.solve(x, y) #연립방정식 # Solve the system of equations 3 * x0 + x1 = 9 and x0 + 2 * x1 = 8:
 
 
+
+    # axis
+# axis = 0 -> (5,3) 행렬에서 처음 5라고 생각하면 됨
+# axis = 1 -> (5,3) 행렬에서 3이라 생각하면 됨
+#  계산: axis=0하면 5개의 원소를 다 더해서 3개가 나옴
+#       axis=1하면 3개의 원소씩 더해서 5개의 원소가 리턴됨.
+
+
 ---------- Numpy ----------
 
 # np.arange 메소드
@@ -121,6 +129,34 @@ np.digitize(scores, bins= [60,70,80,90]) # 93은 4구간, 78은 2구간, 77은 2
 df['pop2'] = np.where(df['pop'] > 2, df['pop'] + 2, df['pop'] + 1.5)
 
 
+
+    # np.clip(a, a_min, a_max, out=None)
+a = np.arange(-5, 5)
+a
+# array([-5, -4, -3, -2, -1,  0,  1,  2,  3,  4])
+
+np.clip(a, 0, 4)
+# array([0, 0, 0, 0, 0, 0, 1, 2, 3, 4])
+a
+# array([-5, -4, -3, -2, -1,  0,  1,  2,  3,  4])
+
+# out=a를 하면 반환 값을 배열 a에 저장할 수 있음
+np.clip(a, 0, 4, out=a)
+# array([0, 0, 0, 0, 0, 0, 1, 2, 3, 4])
+a
+# array([0, 0, 0, 0, 0, 0, 1, 2, 3, 4])
+
+# 최소값 기준만 적용해서 간단하게 '0'보다 작은 수는 모두 0으로 바꿈
+a = np.arange(-5, 5)
+a
+# array([-5, -4, -3, -2, -1,  0,  1,  2,  3,  4])
+
+a.clip(0)
+# array([0, 0, 0, 0, 0, 0, 1, 2, 3, 4])
+
+
+
+
 ---------- Pandas ----------
 
 # Series
@@ -156,6 +192,7 @@ pd.read_csv(fpath, header=None, names=col_names, na_values={'sunspots':[' -1']},
                  usecols=[0,1,2,4,5], dtype={'definite': 'category'}, nrows=10000)
     # 엑셀 파일
     # 콤마가 아닌 다른 ex)스페이스바 로 구분자가 구분이 될때는 table과 sep으로 다른 구분자를 알려줘야 한다
+
 excelFile = pd.read_excel('tttt1.xlsx', sep=' ')
 exam2 = pd.read_table('exam2.csv', sep=' ')
     # 엑셀에서 일부 내용을 복사한 후 클립보드를 이용하여 읽을 수 있다.
@@ -270,6 +307,7 @@ df.select_dtypes(['number'])
 df.select_dtypes(['float'])
 df.select_dtypes(['int'])
 df.select_dtypes(['object'])
+    = data.columns[data.dtypes == object]
     # 데이터 인덱스
 df.index
 df.index.values
@@ -526,6 +564,9 @@ pop_Seoul.rename(columns={pop_Seoul.columns[0] : '구별',
                           pop_Seoul.columns[2] : '한국인',
                           pop_Seoul.columns[3] : '외국인',
                           pop_Seoul.columns[4] : '고령자'}, inplace=True)
+    # 인덱스 이름 바꿀 수도 있음
+df.rename(index = {'old_nm': 'new_nm'), inplace = True)
+
 
 
 ## Reordering Datas

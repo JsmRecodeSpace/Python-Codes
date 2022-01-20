@@ -426,8 +426,16 @@ robustScaler = RobustScaler()
 robustScaler.fit(train_data)
 train_data_robustScaled = robustScaler.transform(train_data)
 
+
+
     # log화, log1p
 # 왼쪽으로 치우진 분포를 정규분포로 바꾸기 위해 로그 변환을 수행한다.
+# 로그 함수 혹은 제곱근 함수 등을 사용하여 변환된 변수를 사용하면 회귀 성눙이 향상 될 수 있다.
+#       독립 변수나 종속 변수가 심하게 한쪽으로 치우친 분포를 보이는 경우
+#       독립 변수와 종속 변수간의 관계가 곱셈 혹은 나눗셈으로 연결된 경우
+#       종속 변수와 예측치가 비선형 관계를 보이는 경우
+#  -> 데이터 중 금액처럼 큰 수치 데이터에 로그를 취하게 되는 이유이기도 하다.
+#  -> 보통 이런 데이터는 선별적으로 로그를 취한 후 모델링 전 전반적으로 스케일링을 적용한다.(in my opinion)
 train_test.iloc[:,1:] = np.log1p(train_test.iloc[:,1:])
 
 
@@ -507,6 +515,39 @@ X_titanic_df = transform_features(X_titanic_df)
 ──────── (3). 피처 선택 (Feature Selection) ────────
 
 
+    # Feature Selection
+# 모델에 적용할 input 변수를 잘 선정하는 것은 모델의 성능에 직접적인 영향을 미치는 과정이다.
+# 아래의 방법을 이용해 모델의 성는을 높이는데 유용한 변수를 선택할 필요가 있다.
+# - Univariate Selection (T-test, ANOVA, Coefficient and so on)
+# - Feature Importance (from Tree-based model)
+# - RFE (recursive feature elimination)
+
+    # Univariate feature selection
+# ※ Univariate Selection은 그룹내 분산이 작고 그룹간 분산이 클 경우 값이 커지는 F-value를 이용하여 분수를 선택한다.
+# 각 변수마다 F값을 구해 F 값이 큰 변수를 기준으로 변수를 선택하는 방법이다.
+# -> [SelectKBest] removes all but the  highest scoring features
+# -> [SelectPercentile] removes all but a user-specified highest scoring percentage of features using common univariate statistical tests for each feature: false positive rate SelectFpr, false discovery rate SelectFdr, or family wise error SelectFwe.
+# -> [GenericUnivariateSelect] allows to perform univariate feature selection with a configurable strategy. This allows to select the best univariate selection strategy with hyper-parameter search estimator.
+
+# These objects take as input a scoring function that returns univariate scores and p-values (or only scores for SelectKBest and SelectPercentile):
+# For regression: f_regression, mutual_info_regression
+# For classification: chi2, f_classif, mutual_info_classif
+#                     chi2: 카이제곱 검정 통계값
+#                     f_classif: 분산분석(ANOVA) F검정 통계값
+#                     mutual_info_classif: 상호정보량(mutual information)
+
+    # Univariate feature selection - Ex 1 (SelectKBest)
+from sklearn.feature_selection import SelectKBest, f_classif
+selectK = SelectKBest(score_func=f_classif, k=8)
+x = selectK.fit_transform(X, y)
+
+    # Univariate feature selection - Ex 2 (SelectKBest)
+from sklearn.feature_selection import SelectKBest, chi2
+selector1 = SelectKBest(chi2, k=14330)
+X_train1 = selector1.fit_transform(X_train, y_train)
+X_test1 = selector1.transform(X_test)
+
+    # Univariate feature selection - Ex 3 (SelectPercentile)
     # SelectPercentile
 model = LogisticRegression(random_state=0)
 # 각 특성과 타깃(class) 사이에 유의한 통계적 관계가 있는지 계산하여 특성을 선택하는 방법
@@ -530,6 +571,54 @@ plt.show()
 selectp = SelectPercentile(percentile=best_score[0]).fit(train_x, y_train)
 X_train_sel = selectp.transform(train_x)
 X_test_sel = selectp.transform(test_x)
+
+
+    # Feature Selection based on Feature Importance
+# ※ ExtraTreesClassifier와 같은 트리 기반 모델은 Feature Importance 를 제공한다.
+# 이 Feature Importance는 불확실도를 많이 낮출수록 증가하므로 이를 기준으로 변수를 선택할 수 있다.
+from sklearn.ensemble import ExtraTreesClassifier
+etc_model = ExtraTreeClassifier()
+etc_model.fit(X, y)
+print(etc_model.feature_importances_)
+feature_list = pd.concat([pd.Series(X.columns), pd.Series(etc_model.feature_importances_)], axis=1)
+feature_list.columns = ['features_name', 'importance']
+feature_list.sort_values("importance", ascending=False)[:8]
+
+
+    # Feature Selection based on RFE
+# ※ 마지막으로 RFE (recursive feature elimination)는 Backward 방식 중 하나로,
+# 모든 변수를 우선 다 포함시킨 후 반복해서 학습을 진행하면서 중요도가 낮은 변수를 하나씩 제거하는 방식이다.
+from sklearn.feature_selection import RFE
+model = LogisticRegression()
+rfe = RFE(model, 8)
+fit = rfe.fit(X, y)
+print("Num Features: %d") % fit.n_features_
+print("Selected Features: %s") % fit.support_
+print("Feature Ranking: %s") % fit.ranking_
+
+
+    # Model based feature selection
+# 다른 모형을 이용한 특성 중요도 계산
+# 특성 중요도(feature importance)를 계산할 수 있는 랜덤포레스트 등의 다른 모형을 사용하여 일단 특성을 선택하고 최종 분류는 다른 모형을 사용할 수도 있다,
+from sklearn.feature_selection import SelectFromModel
+from sklearn.ensemble import ExtraTreesClassifier
+selectfromModel = SelectFromModel(ExtraTreesClassifier(random_state=0), threshold=None)
+X_train_sc2_fs1 = selectfromModel.fit(X_train_sc2, y_train).transform(X_train_sc2)
+X_test_sc2_fs1 = selectfromModel.transform(X_test_sc2)
+svm.fit(X_train_sc2_fs1, y_train).score(X_test_sc2_fs1, y_test)
+
+    # Model based feature selection - Ex 2
+n_sample = 10000
+idx = np.random.choice(range(len(y_train)), n_sample)
+model_sel = ExtraTreesClassifier(n_estimators=50).fit(X_train[idx, :], y_train[idx])
+selector = SelectFromModel(model_sel, prefit=True, max_features=14330)
+X_train_sel = selector.transform(X_train)
+X_test_sel = selector.transform(X_test)
+
+
+
+    # 다중공선성
+# 상관관계가 큰 독립 변수들이 있는 경우, 이 경우에는 변수 선택이나 PCA를 사용한 차원 축소 등으로 해결한다.
 
 
 ──────── 모델링(Modeling, Hyperparameter 최적화 with CV) ────────
