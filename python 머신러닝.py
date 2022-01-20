@@ -1915,6 +1915,22 @@ print(classification_report(y_test, pred_tree, target_names=['not 9', '9']))
 
 
 
+    # 지도학습 비지도학습 혼합 아이디어(실제 해본 적 있는 것들)
+ - PCA 사용시 보통 99퍼로 가져가지만, PCA 과정을 하나의 피처 생성과정으로 보고 PCA 90%퍼로 추출해서 원본 피처에 부착해서 사용
+ - 비지도학습(Ex: Kmeans)로 이용고객 여러 개의 집단으로 묶어서(150~170여개 정도) predict_label값을 피처로써 사용
+
+
+
+    # 머신러닝 딥러닝 혼합 아이디어(실제 해본 적 있는 것들)
+ - AE(혹은 DAE)로 train 피처를 학습시킴, 학습시킨 AE의 Encoder로 train 피처와 test 피처를 predict하여 compressed_representation을 각각 뽑음
+   compressed_representation된 X_train, X_test를 DNN으로 학습시켜 submission까지 추출
+
+ - 피처의 사진화: 평범한 피처의 각 행을 각각 하나의 사진으로써 보고 사진을 쌓아올리는 과정으로 사진묶음(3D Data)을 만들어서 CNN을 활용해 예측
+
+ - 'Featurizer'란 단어로 검색해서 다양한 모델, 기법을 활용하여 피처를 만드는 방법 써보는 것도 정말 색다른 피처를 만드는 좋은 방법이었음
+    EX: KMeansFeaturizer, EmbeddingVectorizer
+
+
 
 
 
