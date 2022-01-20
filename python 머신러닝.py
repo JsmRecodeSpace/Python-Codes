@@ -110,6 +110,17 @@ def fillna(df):
     df['Fare'].fillna(0, inplace=True)
     return df
 
+    # 결측치 처리 - Ex 3 (SimpleImputer를 사용하는 방법)
+from sklearn.impute import SimpleImputer
+ # strategy='mean' (평균 대체),
+ # strategy='mdian' (중위수 대체)
+ # strategy='most_frequent' (최빈값 대체)
+imputer_con = SimpleImputer(strategy='median')
+imputer_con.fit(data[con])
+data_imp = data.copy()
+# imputer를 fit훈련시킨후 transform으로 실제 적용하는 것
+data_imp[con] = imputer_con.transform(data[con])
+
 
 
     # 이상치(Outlier) 제거
@@ -218,10 +229,10 @@ race_an1 = pd.concat([race_for_out, out], 1)
 
 
 
-s
+
     # 인코딩(Encoding)
-    # 레이블 인코딩(label Encoding)
-# 카테고리 피처를 코드형 숫자 값으로 변환하는 것
+    # 레이블 인코딩(label Encoding) / 라벨 인코딩
+# 카테고리 피처를 코드형 숫자 값으로 변환하는 것(하나의 라벨을 하나의 정수와 대응시켜 Encoding 한다)
 # LabelEncoder 객체를 생성한 후, fit()과 transform()으로 레이블 인코딩 수행
 # - 숫자 값의 경우 크고 작음에 대한 특성이 작용하기 때문에 특정 ML 알고리즘에서는 가중치가 더 부여되거나 더 중요하게 인식할 가능성이 있다.
 # 이러한 특성때문에 레이블 인코딩은 선형회귀와 같은 ML알고리즘에는 적용되지 않아야함.
@@ -254,24 +265,119 @@ import pandas as pd
 df = pd.DataFrame({'item':['TV', '냉장고', '전자레인지', '컴퓨터', '선풍기', '선풍기', '믹서', '믹서']})
 pd.get_dummies(df)
 
+    # 원핫인코딩(One-Hot Encoding) - Ex 2
+# 0과 1의 배열(벡터)을 하나의 라벨(카테고리 값)에 대응하여 Encoding한다.(해당하는 범주만 1로 하고 나머지는 다 0으로 만들어진다.)
+# 선형모델에서는 꼭 원핫인코딩을 해야하는데 트리계열은 원핫인코딩을 해도 좋고 안해도 성능저하가 별로 없다.
+# 원핫인코딩을 하게 되면 해당 칼럼이 사라지고 인코딩시킨 칼럼이 추가된다.
+data_imp_ohe = pd.get_dummies(data_imp, columns['day'])
+
 # 범주형 변수에 One-Hot-Encoding 후 수치형 변수와 병합
 if len(cat_features) > 0:
     train_test = pd.concat([train_test[num_features], pd.get_dummies(train_test[cat_features])], axis=1)
+
+    # Mean Encoding
+# Mean Encoding은 특히 Gradient Boosting Tree 계열에 많이 쓰이고 있다.
+# 원핫인코딩이나 라벨인코딩은 인코딩된 값 자체가 별로 의미가 없다. 하지만 Mean Encoding은 구분을 넘어 좀 더 의미있는 Encoding을 하기 위해서
+# 내가 Encoding하는 feature와 예측하려하는 target간의 어떤 수치적인 관계를 catgorical에서도 찾으려는 것이다.
+# Regression이든 Classification이든 이런 feature는 예측 값에 좀 더 가깝게 학습되게 한다. -> 즉, Less bias를 가진다. -> 오버피팅의 문제가 있다.
+target = 'Survived' # target 설정
+sex_mean = df.groupby('Sex')[target].mean() # target에 대한 sex 내 각 변수의 mean을 구함
+df['Sex_mean'] = df['Sex'].map(sex_mean) # 가존 변수에 encoded된 값을 매핑
+
+    # Smoothing, CV loop, Expanding mean
+# Mean Encoding은 예측 값에 대한 정보가 포함되기 때문에 오버피팅이 된다. 따라서 Mean Encoding에는 Data Leakage와 Overfitting을 최소화하려는 기법들이 존재한다.
+
+    # Smoothing
+# Smoothing은 위에 단점의 마지막상황(Trainset에는 남자가 100명, 여자가 5명이고, Testset에는 50명, 50명인 경우를 고려한 기법)
+# 저 5명의 평균이 여자 전체의 평균을 대표한다고 보기엔 힘드니, 그 평균을 남녀 무관한 전체 평균에 좀더 가깝게 만다는 것이다.
+# 즉, 치우쳐진 평균을 전체 평균에 가깝도록, 기존 값을 스무스하게 만든다.
+# alpha 는 하이퍼 파라미터로, 유저가 임의로 주는 것이다.
+# 0을 주면, 기존과 달라지는게 없다. (저 식에 0을 넣으면 그냥 원래 encoding 된 값이다.)
+# 반대로 alpha 값이 커질수록 더 스무스하게 만든다, 보통 알파는 카테고리 사이즈와 동일할 때, 신뢰할 수 있다함.
+df['Sex_n_rows'] = df['Sex'].map(df.groupby('Sex').size())
+global_mean = df[target].mean()
+alpha = 0.7
+
+def smoothing(n_rows, target_mean):
+    return (target_mean*n_rows + global_mean*alpha) / (n_rows + alpha)
+df['Sex_mean_smoothing'] = df.apply(lambda x:smoothing(x['Sex_n_rows'], x['Sex_mean']), axis=1)
+
+    # CV loop
+# CV Loop은 Trainset 내에서 cross validation을 통한 Mean Encoding을 통해 Data Leakage를 줄이고,
+# 이전보다 Label값에 따른 Encoding값을 다양하게 만다는 시도를 한다.
+# Encoding값을 다양하게 만들면, 트리가 만들어질 때, 더 세분화되어 나누어져, 더 좋은 훈련효과를 볼 수 있다.
+    # CV loop - Ex 1
+from sklearn.model_selection import train_test_split
+# trainset 과 testset 분리.
+# encoding은 무조건 trainset 만 사용해야 한다.
+train, test = train_test_split(df, test_size=0.2, random_state=42, shuffle=True)
+# train -> train_new 로 될 예정. 미리 데이터프레임 만들어주기.
+train_new = train.copy()
+train_new[:] = np.nan
+train_new['Sex_mean'] = np.nan
+from sklearn.model_selection import StratifiedKFold
+# Kfold 만들어 주기.
+X_train = train.drop(target, axis=1)
+Y_train = train[target]
+skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+# 각 Fold iteration.
+for tr_idx, val_idx in skf.split(X_train, Y_train):
+    X_train, X_val = train.iloc[tr_idx], train.iloc[val_idx]
+# train set 에서 구한 mean encoded 값을 validation set 에 매핑해줌.
+    means = X_val['Sex'].map(X_train.groupby('Sex')[target].mean())
+    X_val['Sex_mean'] = means
+    train_new.iloc[val_idx] = X_val
+# 폴드에 속하지못한 데이터들은 글로벌 평균으로 채워주기.
+global_mean = train[target].mean()
+train_new['Sex'] = train_new['Sex'].fillna(global_mean)
+train_new[['Sex', 'Sex_mean']].head()
+# 위에서 Fold의 수는 5개 였으니, 각각의 train fold마다 Mean encoding 값을 만들어 낼 것이고, 그러면 한 label값당 5개의 encoding값이 나오는 것을 알 수 있다.
+# 보통 4-5fold를 진행하면 괜찮은 결과, 카테고리 수가 너무 작은 경우엔 오버피팅
+
+    # Expanding mean
+# Expanding mean은 Label당 encoded되는 값을 좀 더 많이 만들어보자는 시도이다. 즉 위 CV Loop 기법에서는 encoded 값이 Fold 수 만큼 나올 수 밖에 없었다.
+# Expandin mean은 cumsum()과 cumcount()를 이용하여, encoded 된 값의 특성은 지니면서, 값을 좀 더 잘게 나누는 테크닉이다.
+# -> 하지만 이렇게 만들어낸 값이 유용한 값일지, noise 인지 확신할 수는 없기에 경우에 따라서 잘 써야한다.
+# -> CatBoost모델에서 이 기법이 Built-in 되어 기본적인 성능 향상을 시켰다고 한다.
+cumsum = train.groupby('Sex')[target].cumsum() - train[target]
+cumcnt = train.groupby('Sex').cumcount()
+train_new['Sex_mean'] = cumsum / cumcnt
+
+
 
 
 
     # 스케일링(feature scaling)
 # - 서로 다른 변수의 값 범위를 일정한 수준으로 맞추는 작업
-# MinMaxScaler는 매우 다른 스케일의 범위를 0과 1사이로 변환
-# StandardScalar는 각 특성의 평균을 0, 분산을 1로 변경하여 모든 특성이 같은 크기를 가지게 함
-#    이 방법은 특성의 최솟값과 최댓값 크기를 제한하지 않음
-# RobustScaler는 특성들이 같은 스케일을 갖게 되지만 평균대신 중앙값을 사용
-#    극단값에 영향을 받지 않음
-# Nomalizer는 uclidian의 길이가 1이 되도록 데이터 포인트를 조정
-#    각도가 많이 중요할 때 사용
+# 스케일링은 자료의 오버플로우(overflow)나 언더플로우(underflow)를 방지하고 독립 변수의 공분산 행렬의 조건수(condition number)를
+# 감소시켜 최적화 과정에서의 안정성 및 수렴속도를 향상시킨다.
+# 변수들의 단위 차이로 인해 숫자의 스케일이 크게 달라지는 경우, 스케일링으로 해결하는 것이다.
+# 일반적으로
+#	회귀 분석 문제의 더미 변수는 스케일링 하지 않고 0, 1값을 사용합니다.
+#	분류 문제에서는 스케일링해도 결과에 큰 영향을 미치지 않습니다
+#	특히 k-means 등 거리 기반의 모델에서는 스케일링이 매우 중요하다.
+# 모든 스케일러 처리 전에는 아웃라이어 제거가 선행되어야 한다. 또한 데이터의 분포 특징에 따라 적절한 스케일러를 적용해주는 것이 좋다.
+# 보통 회귀에서 하고 분류에서는 안한다 함
+
+    # scikit-learn에서는 다음과 같은 스케일링 클래스를 제공한다.
+# - StandardScaler(X): 평균이 0과 표준편차가 1이 되도록 변환.
+# - RobustScaler(X): 중앙값(median)이 0, IQR(interquartile range)이 1이 되도록 변환. 아웃라이어의 영향을 최소화
+# - MinMaxScaler(X): 최대값이 각각 1, 최소값이 0이 되도록 변환
+# - MaxAbsScaler(X): 0을 기준으로 절대값이 가장 큰 수가 1또는 -1이 되도록 변환, 최대절대값과 0이 각각 1,0이 되도록 스케일링
+
+    # 사용방법
+# (1) 학습용 데이터의 분포 추정: 학습용 데이터를 입력으로 하여 fit 메서드를 실행하면 분포 모수를 객체내에 저장
+# (2) 학습용 데이터 변환: 학습용 데이터를 입력으로 하여 transform 메서드를 실행하면 학습용 데이터를 변환
+# (3) 검증용 데이터 변환: 검증용 데이터를 입력으로 하여 transform 메서드를 실행하면 검증용 데이터를 변환
+# (1)번과 (2)번 과정을 합쳐서 fit_transform 메서드를 사용할 수도 있다.
+
+# 전체 스케일링 결과는 비슷하지만 아웃라이어를 제거한 나머지 데이터의 분포는 로버스트 스케일링을 사용했을 때가 더 좋다.
 
     # StandardScaler
 # 개별 피처를 평균이 0이고 분산이 1인 값으로 변환
+# preprocessing using zero mean and nuit variance scaling
+# 평균을 제거하고 데이터를 단위 분산으로 조정한다. 그러나 이상치가 있다면 평균과 표준편차에 영향을 미쳐 변환된 데이터의 확산은 매우 달라지게 된다.
+# 따라서 이상치가 있는 경우 균형 잡힌 척도를 보장할 수 없다.
 # (SVM, 선형회귀(Linear Regression), 로지스틱 회귀에서는 데이터가 가우시안 분포를 가지고 있다고 가정하고 구현돼어서 사전에 표준화를 적용하는 것은 예측 성능 향상에 중요한 요소가 될 수 있음
 from sklearn.preprocessing import StandardScaler
 # StandardScaler 객체 생성
@@ -289,6 +395,8 @@ print(iris_df_scaled.var())
     # MinMaxScaler
 # - MinMaxScaler는 데이터값을 0과 1사이의 범위로 변환합니다(음수 값이 있으면 -1에서 1값으로 변환합니다.)
 # - 데이터의 분포가 가우시안 분포가 아닐 경우 Min, Max Scale을 적용해 볼 수 있음.
+# 모든 feature 값이 0~1 사이에 있도록 데이터를 재조정한다. 다만 이상치가 있는 경우 변환된 값이 매우 좁은 범위로 압축 될 수 있다.
+# 즉, MinMaxScaler 역시 아웃라이어의 존재에 매우 민감하다.
 from sklearn.preprocessing import MinMaxScaler
 # MinMaxScaler 객체 생성
 scaler = MinMaxScaler()
@@ -302,11 +410,18 @@ print(iris_df_scaled.min())
 print('feature들의 최댓값')
 print(iris_df_scaled.max())
 
+    # MaxAbsScaler
+# 절대값이 0~1사이에 매핑되도록 한다. 즉 -1~1 사이로 재조정한다. 양수 데이터로만 구성된 특징 데이터셋에서는 MinMaxScaler와 유사하게 동작하며,
+# 큰 이상치에 민감할 수 있다.
+from sklearn.preprocessing import MaxAbsScaler
+maxAbsScaler = MaxAbsScaler()
+maxAbsScaler.fit(train_data).transform(train_data)
+
     # RobustScaler
 from sklearn.preprocessing import RobustScaler
-# - 평균과 분산 대신에 중간값과 사분위값 사용
-#       = 중앙값(median)과 IQR(interquartile range)사용
-# 아웃라이어의 영향을 최소화
+# 아웃라이어의 영향을 최소화한 기법이다. 중앙값(median)과 IQR(interquartile range)을 사용하기 때문에
+# StandardScaler와 비교해보면 표준화 후 동일한 값을 더 넓게 분포시키고 있음을 확인할 수 있다.
+# IQR = Q3 - Q1 : 즉, 25퍼센트와 75퍼센트의 값들을 다룬다.
 robustScaler = RobustScaler()
 robustScaler.fit(train_data)
 train_data_robustScaled = robustScaler.transform(train_data)
