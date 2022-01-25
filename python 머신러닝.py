@@ -1,8 +1,11 @@
 
 
-
-
-
+    # 전체 과정, 흐름
+* ML, Machine Learning
+* 머신러닝 여러 설명
+* 머신러닝 혼합 아이디어
+* Import codes
+* 변수 생성
 
 ---------- ML, Machine Learning ----------
 
@@ -227,6 +230,12 @@ out = pd.DataFrame(y_pred_outliers)
 out = out.rename(columns={0: "out"})
 race_an1 = pd.concat([race_for_out, out], 1)
 
+
+    # 표준화 값(z 점수)에 근거에한 이상치
+# • 표준화 값(z 점수)에 근거하여 데이터값을 다음과 같이 분류할 수 있다.
+# • 이상값(Unusual): if |zi| › 2 (µ ± 2σ이상)
+# • 특이값(Outlier): if |zi| › 3 (µ ± 3σ이상)
+#  - IQR을 이용한 방법 외에 이런식으로도 이상값과 특이값을 제거할 수도 있겠다.
 
 
 
@@ -1899,6 +1908,30 @@ joblib.dump(Extra_clf, 'Extra_clf_bayesian.pkl')
 
 ──────── 성능검증 ────────
 
+    # 모형평가 - Ex 0
+    # 정예실모과 재실예데
+1. Precision : 정밀도
+ - 모델이 True라고 분류한 것 중에서 실제 True인 것의 비율
+ - 모델이 예측한 것 중에서 실제 True인 것의 비율
+ - 정 + 예 + 실 = 정예실
+
+2. Recall : 재현율
+ - 실제 True인 것 중에서 모델이 True라고 예측한 것의 비율
+ - 재 + 실 + 예 = 재실예
+
+3. 예시와 관점
+ - 정예실(Precision): 날씨 예측을 모델이 맑다로 예측했는데, 실제 날씨가 맑았는지 살펴볼때 사용
+ - 재실예(Recall): 실제로 날씨가 맑은 날 중에서 모델이 맑다고 예측한 비율
+ - 모두 실제 True인 정답을 모델이 True라고 예측한 경우데 관심이 있으나,
+   바라보고자 하는 관점이 다름. Precision은 모델의 입장에서, 그리고 Recall은 실제 정답(data)의 입장에서 정답을 맞춘 경우임.
+
+4. 결론
+ - 정예실 + 모(델의 입장), 재실예 + 데(이터)의 입장
+ - (정예실모)와 (재실예데)를 기억하자!
+ - 참고 url : https://sumniya.tistory.com/26
+
+
+
 
     # predict_proba() 메서드
 # - predict_proba() 는 학습이 완료된 사이킷런 Classifier 객체에서 호출이 가능하며 테스트 피처 데이터 세트를 파라미터로 입력해주면 테스트 피처 레코드의 개별 클래스 예측 확률을 반환합니다.
@@ -2119,30 +2152,27 @@ print(classification_report(y_test, pred_tree, target_names=['not 9', '9']))
 
 
 
-    # 지도학습 비지도학습 혼합 아이디어(실제 해본 적 있는 것들)
- - PCA 사용시 보통 99퍼로 가져가지만, PCA 과정을 하나의 피처 생성과정으로 보고 PCA 90%퍼로 추출해서 원본 피처에 부착해서 사용
- - 비지도학습(Ex: Kmeans)로 이용고객 여러 개의 집단으로 묶어서(150~170여개 정도) predict_label값을 피처로써 사용
-
-
-
-    # 머신러닝 딥러닝 혼합 아이디어(실제 해본 적 있는 것들)
- - AE(혹은 DAE)로 train 피처를 학습시킴, 학습시킨 AE의 Encoder로 train 피처와 test 피처를 predict하여 compressed_representation을 각각 뽑음
-   compressed_representation된 X_train, X_test를 DNN으로 학습시켜 submission까지 추출
-
- - 피처의 사진화: 평범한 피처의 각 행을 각각 하나의 사진으로써 보고 사진을 쌓아올리는 과정으로 사진묶음(3D Data)을 만들어서 CNN을 활용해 예측
-
- - 'Featurizer'란 단어로 검색해서 다양한 모델, 기법을 활용하여 피처를 만드는 방법 써보는 것도 정말 색다른 피처를 만드는 좋은 방법이었음
-    EX: KMeansFeaturizer, EmbeddingVectorizer
-
-
-
-
-
 
 
 ──────── 모형 해석 ────────
 
 
+
+
+
+
+──────── 기타 ────────
+
+    # 구글 코랩 런타임 끊김 방지 - Ex1
+# - 구글 코랩에서 F12로 개발자 도구창을 열고 Console 선택 후 아래의 코드를 입력한 뒤 엔터를 누르면됩니다.
+function ClickConnect() {var buttons = document.querySelectorAll("colab-dialog.yes-no-dialog paper-button#cancel"); buttons.forEach(function(btn) { btn.click(); }); console.log("1분마다 자동 재연결"); document.querySelector("colab-toolbar-button#connect").click(); } setInterval(ClickConnect,1000*60);
+
+    # 구글 코랩 런타임 끊김 방지 - Ex2
+function ClickConnect(){
+    console.log("코랩 연결 끊김 방지");
+    document.querySelector("colab-toolbar-button#connect").click()
+}
+setInterval(ClickConnect, 60 * 1000)
 
 
 
@@ -2225,18 +2255,145 @@ print(classification_report(y_test, pred_tree, target_names=['not 9', '9']))
 
 
 
+    # 변동계수(coefficient of variation)
+# • 측정단위가 서로 다를 때(예: 킬로그램과온스), 또는 평균이 서로 다를 때 데이터의 퍼진 정도를 비교하기 위한 것이 변동계수(CV)이다.
+# • 즉, 변동계수는 단위와 무관한 측도이다.
+# • 공식에서 보는 것처럼 CV는 표준편차가 평균의 몇 퍼센트인지를 나타낸다.
+# • 어떤 데이터세트의 경우 표준편차가 평균보다 큰 경우도 있기 때문에 CV가 100%를 넘을 수도 있다.
+# • 서로 다른 단위로 측정된 변수들을 비교할때 CV가 유용하다.
+# • 단, 평균이 0, 또는 음수(-)이면 정의되지 않으므로 양수(+)의 데이터에만 가능하다.
+
+
+
+    # 표본데이터의 표준편차 추정(Estimating Sigma)
+# • 정규분포는 거의 모든 관측치가 μ ± 3σ 이내에 있다. 즉, 관측치의 범위는 대략 6σ 이내이다.
+# • 따라서 표본데이터의 범위 ‘Xmax − Xmin’을 안다면 표준편차는 ‘s = (Xmax − Xmin)/6’ 으로 추정된다.
+# • 이 규칙은 표본데이터의 범위만을 알고 있을 때 표준편차를 대략 손쉽게 구할 수 있는 방법이다.
+# • 물론 이 표준편차 추정치는 표본데이터가 정규분포를 따른다는 가정을 바탕으로 하고 있다.
+
+
+
+    # < 기초통계 >
+평균: 산술평균, 기하평균, 중앙값(중위수), 최빈값, 조화평균, 멱평균
+변동성: 데이터 값들이 중심에서 퍼져있는 정도
+ -> 변동계수: s / x_bar * 100% : 표준편차가 평균의 몇퍼센트인지 보는 것
+표준화(standardized value): Z값 : 관측치와 평균과의 거리가 표준편차의 몇 배인지를 나타낸다.
+ 		-> z값은 특정한 관측치가 평균으로부터 얼마나 떨어져 있는지를 파악하는 방법이 된다. (Zi = (xi - mu) / sigma, 표본인경우 Zi = (xi - x_bar) / s)
+백분위수(percentile): 데이터를 100개의 그룹으로 나눈 것이다
+공분산(covariance): 두 변수 X와 Y의 공분산은 X와 Y가 같은 방향으로 변하는 정도를 측정
+상관계수(correlation coefficient): X와 Y의 공분산을 각각의 표준편차의 곱으로 나눈 것.
+                                  이들간의 선형적인 관련성을 측정하는 대표적인 통계량임
+
+
+
+
+---------- 머신러닝 혼합 아이디어  ----------
+
+
+
+    # 지도학습 비지도학습 혼합 아이디어(실제 해본 적 있는 것들)
+ - PCA 사용시 보통 99퍼로 가져가지만, PCA 과정을 하나의 피처 생성과정으로 보고 PCA 90%퍼로 추출해서 원본 피처에 부착해서 사용
+ - 비지도학습(Ex: Kmeans)로 이용고객 여러 개의 집단으로 묶어서(150~170여개 정도) predict_label값을 피처로써 사용
+
+
+
+    # 머신러닝 딥러닝 혼합 아이디어(실제 해본 적 있는 것들)
+ - AE(혹은 DAE)로 train 피처를 학습시킴, 학습시킨 AE의 Encoder로 train 피처와 test 피처를 predict하여 compressed_representation을 각각 뽑음
+   compressed_representation된 X_train, X_test를 DNN으로 학습시켜 submission까지 추출
+
+ - 피처의 사진화: 평범한 피처의 각 행을 각각 하나의 사진으로써 보고 사진을 쌓아올리는 과정으로 사진묶음(3D Data)을 만들어서 CNN을 활용해 예측
+
+ - 'Featurizer'란 단어로 검색해서 다양한 모델, 기법을 활용하여 피처를 만드는 방법 써보는 것도 정말 색다른 피처를 만드는 좋은 방법이었음
+    EX: KMeansFeaturizer, EmbeddingVectorizer
 
 
 
 
 
 
+---------- Import Codes ----------
+
+from sklearn.model_selection import train_test_split
+
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import classfication_report
+
+    # Cross Validation
+from sklearn.model_selection import KFold #for K-fold cross validation
+from sklearn.model_selection import cross_val_score #score evaluation
+from sklearn.model_selection import cross_val_predict #prediction
+scores = cross_val_score(clf, X, y, cv=5, scoring='f1_macro') # model, train, target, cross validation
+print('cross-val-score \n{}'.format(scores))
+print('cross-val-score.mean \n{:.3f}'.format(scores.mean()))
+
+
+    # DT
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DeicisionTreeRegressor
+
+    # RF
+from sklearn.ensemble import RandomForestClassifier
+
+    # GridSearch
+from sklearn.model_selection import GridSearchCV
+
+    # XGB
+from xgboost import XGBClassifier
+import xgboost as xgb
+
+    # LGBM
+from lightgbm import LGBMClassifier
+
+    # Logistic Regression
+from sklearn.linear_model import LogisticRegression
+
+    # KNN
+from sklearn.neighbors import KNeighborsClassifier
+
+    # SVM
+from sklearn import svm
+clf = svm.SVC(kernel='linear', C=1).fit(X_train, y_train)
+clf.score(X_test, y_test)
+
+
+    # Ensemble
+from sklearn.ensemble import VotingClassifier
+from mlxtend.classifier import StackingClassifier
+
+
+    # word2vec embedding (w2v)
+from gensim.models import Word2Vec
+embedding_model = Word2Vec(tokenized_contents, size=100, window = 2, min_count=50, workers=4, iter=100, sg=1)
+# check embedding result
+print(embedding_model.most_similar(positive=["������"], topn=100))
+
+
+    # XGB feature Importance
+from xgboost import plot_importance
+import matplotlib.pyplot as plt
+%matplotlib inline
+fig, ax = plt.subplots(figsize=(10,12))
+plot_importance(xgb_gs.best_estimator_, ax=ax)
+plt.show()
+
+    # 의사결정 나무 시각화
+import graphviz
+from sklearn.tree import export_graphviz
 
 
 
-
-
-
+# pip install -U gensim
+# !pip install mlxtend
+# !pip install vecstack
+# !pip install bayesian-optimization
+# !pip install catboost
+# !pip install selenium
+# pip install scikit_optimize
+!pip3 install jsonpath --user
+!pip install pyarrow --user
 
 
 ---------- 변수 생성 ----------

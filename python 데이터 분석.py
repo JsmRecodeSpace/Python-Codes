@@ -1,4 +1,17 @@
 
+
+    # 전체흐름, 과정
+* Array
+* Numpy
+* Pandas
+* Pandas Visualization
+* Matplotlib Visualization
+* Seaborn Visualization
+* Import codes
+* 연습문제들
+
+
+
 ---------- Array ----------
 
 # Vectors (1D tensors)
@@ -156,6 +169,11 @@ a.clip(0)
 
 
 
+    # np.isfinite
+# 객체 또는 원소에서 infinity가 아닐 경우 True를 반환
+np.isfinite(array객체)
+
+
 
 ---------- Pandas ----------
 
@@ -264,6 +282,7 @@ df.index.tolist() # 인덱스 -> 리스트로 출력
 ## reshape
 M.reshape(4,2)
 M.reshape(4,-1) # 행은 4개를 만들어 놓고 -1은 내가 지정안할테니 너가 알아서 해라.
+array.reshape(-1,) # 1차원으로 변환
 
 
 
@@ -719,6 +738,19 @@ pd.melt(df, value_vars=['A', 'B', 'C'])
 pd.melt(data, id_vars=['cust_ID', 'prd_CD'], var_name='pch_CD', value_name='pch_value')
 
 
+
+    # unstack 검색
+# melt의 반대 느낌
+# Groupby와 unstack()을 활용하여 데이터를 핸들링 해보자
+# 데이터에서 성별,생존여부에 따른 나이대의 평균을 groupy를 통해 구하면 아래코드와 같다
+df.groupby(['Sex','Survived'])['Age'].mean()
+# 이렇게 groupby한 결과물도 DataFrame이다.
+# 이걸 matrix 형태로 변환시키기 위해 unstack 메서드를 사용한다
+# 이렇게 하면 'Sex'와 'Survivied'를 index, column으로 가지는 DataFrame을 얻을 수 있다.
+new_df = df.groupby(['Sex','Survived'])['Age'].mean().unstack()
+
+
+
 ## Binning
 	# cut: 실수 값의 경계선을 지정하는 경우
 	# The input array to be binned. Must be 1-dimensional.
@@ -931,7 +963,14 @@ scatter_matrix(df, alpha=0.2, figsize=(9, 9), diagonal='kde')
     # Box
 # plot 공통 인자
 # kind='box', figsize=(8,6), subplots=True, layout=(1, 2), sharey=True, legend=False
-# box plot 박스 플롯, 상자 수염 그림
+
+    # Box plot 설명
+# • 상자그림은 탐색적 데이터분석(EDA: exploratory data analysis)에서 유용한 분석도구이다.
+# 이는 다음의 다섯숫자 요약(five-number summary)에 의해 만들어진다.: xmin, Q1, Q2, Q3, xmax
+# • 상자의 양쪽 끝에서 수평으로 길게 뻗은 선을 보통 수염(whiskers)이라고 부르며,
+# 수염의 길이는 데이터 분포의 양쪽 고리가 긴 정도, 즉 분포의 정도를 나타낸다.
+# • 또한 상자그림은 데이터의 중심(center)과 변동성(variability)을 보여준다
+
 # notch = True, 가운데 상자를 중앙값 부근에서 V자 형태로 골이 패이게 그림
 df.plot(kind='box', grid=True, figsize=(6,6))
 
@@ -1691,6 +1730,7 @@ plt.colormaps()
 
     # seaborn plot 소개 순서
 * lineplot
+* histplot
 * pairplot
 * countplot
 * barplot
@@ -1700,9 +1740,11 @@ plt.colormaps()
 * stripplot  = scatterplot type 2
 * swarmplot  = scatterplot type 3
 * heatmap
+* clusterMap
 * kdeplot
 * displot = histplot + kdeplot + rugplot
-* implot ~=~ regplot
+* regplot
+* implot
 
 
 
@@ -1720,8 +1762,19 @@ plt.show()
 
 
 
+    # histplot
+# 변수에 대한 히스토그램을 표시한다.
+# 하나 혹은 두 개의 변수 분포를 나타내는 전형적인 시각화 도구로 범위에 포함되는 관측수를 세어 표시한다.
+sns.histplot(x=df['total_bill'])
+    = sns.displot(x=df['total_bill'], kind='hist')
+sns.histplot(x=df['total_bill'], y=df['tip'])
+    = sns.displot(x=df['total_bill'], y=df['tip'], kind='hist')
+
+
+
     # Pair Plot
 # pairplot은 데이터프레임을 인수로 받아 그리드(grid) 형태로 각 데이터 열의 조합에 대해 스캐터플롯을 그린다.
+# 데이터셋을 통째로 넣으면 숫자형 특성에 대하여 각각에 대한 히스토그램과 두 변수 사이의 scatter plot을 그린다.
 # 같은 데이터가 만나는 대각선 영역에는 해당 데이터의 히스토그램을 그린다.
 
 # 칼럼간의 관계도를 나타냄. 대각선 히스토그램
@@ -1763,6 +1816,8 @@ sns.pairplot(iris,
 
     # Count Plot
 # countplot 명령을 사용하면 각 카테고리 값별로 데이터가 얼마나 있는지 표시할 수 있다.
+# 범주형 변수의 발생 횟수를 샌다.
+# 일변량(univariate) 분석이다.
 # * `countplot`: http://seaborn.pydata.org/generated/seaborn.countplot.html
 sns.countplot(data=titanic, x='class')
 sns.countplot(data=titanic, x='class', hue='who')
@@ -1805,7 +1860,9 @@ plt.show()
 
     # Bar Plot
 # barplot은 카테고리 값에 따른 실수 값의 평균★과 편차★를 표시하는 기본적인 바 차트를 생성한다.
-# 평균은 막대의 높이로,  편차는 에러바(error bar)로 표시한다.
+# 평균은 막대의 높이로, 편차는 에러바(error bar)로 표시한다.
+# 이변량(bivariate)분석을 위한 plot이다.
+# x축에는 범주형 변수, y축에는 연속형 변수를 넣는다.
 # * `barplot`: http://seaborn.pydata.org/generated/seaborn.barplot.html
 sns.barplot(data=tips, x="day", y="total_bill")
 sns.barplot(data=titanic, x='sex', y='survived', hue='class')
@@ -1856,6 +1913,16 @@ plt.show()
 # 박스 외부의 세로선은 1사분위 수보다 1.5 x IQR 만큼 낮은 값과 3사분위 수보다 1.5 x IQR 만큼 높은 값의 구간을 기준으로
 # 그 구간의 내부에 있는 가장 큰 데이터와 가장 작은 데이터를 잇는 선분이다.
 # 그 바깥의 점은 아웃라이어(outlier)라고 부르는데 일일히 점으로 표시한다.
+
+    # 상자그림 - 설명 2
+# • 상자그림은 탐색적 데이터분석(EDA: exploratory data analysis)에서 유용한 분석도구이다.
+# 이는 다음의 다섯숫자 요약(five-number summary)에 의해 만들어진다.: xmin, Q1, Q2, Q3, xmax
+# • 상자의 양쪽 끝에서 수평으로 길게 뻗은 선을 보통 수염(whiskers)이라고 부르며,
+# 수염의 길이는 데이터 분포의 양쪽 고리가 긴 정도, 즉 분포의 정도를 나타낸다.
+# • 또한 상자그림은 데이터의 중심(center)과 변동성(variability)을 보여준다
+# 단일 연속형 변수에 대해 수치를 표시하거나, 연속형 변수를 기반으로 서로 다른 범주현 변수를 분석할 수 있다.
+sns.boxplot(x = df['total_bill'])
+sns.boxplot(y = df['total_bill'], x = df['smoker'])
 sns.boxplot(data=titanic, x='survived', y='age', hue='adult_male')
 
 # tips = sns.load_dataset("tips")
@@ -1878,6 +1945,7 @@ plt.show()
 
 
     # Violinplot
+# Box Plot과 비슷하지만 분포에 대한 보충 정보가 제공된다.
 # boxplot이 중앙값, 표준편차 등, 분포의 간략한 특성만 보여주는데 반해
 # violinplot, stripplot, swarmplot 등은 카테고리 값에 따른
 # 각 분포의 실제 데이터나 전체 형상을 보여준다는 장점이 있다.
@@ -1930,6 +1998,7 @@ sns.jointplot(data=penguins, x="bill_length_mm", y="bill_depth_mm", kind="reg")
 # kind='hist'로 하면 데이터를 histplot()을 활용하여 나타냄
 sns.jointplot(data=penguins, x="bill_length_mm", y="bill_depth_mm", kind="hist")
 
+# scatter plot 대신 hex plot으로 정의할 수도 있다.
 # kind='hex', hist로 하는 것보다 보기 좋은 것 같음
 sns.jointplot(data=penguins, x="bill_length_mm", y="bill_depth_mm", kind="hex")
 
@@ -1972,7 +2041,9 @@ sns.stripplot("day", "total_bill", "smoker", data=tips,
 
 
     # Swarm Plot = Scatterplot type 3
-# swarmplot은 stripplot과 비슷하지만 데이터를 나타내는 점이 겹치지 않도록 옆으로 이동한다. -> 둘다 그려보고 비교하기 좋은 그림 선택하면 될듯
+# Strip plot과 violin plot의 조합이다.
+# 데이터 포인트 수와 함께 각 데이터의 분포도 제공한다.
+# swarmplot은 stripplot과 비슷하지만 데이터를 나타내는 점이 겹치지 않도록 옆으로 이동한다.
 # * `swarmplot`: http://seaborn.pydata.org/generated/seaborn.swarmplot.html
 # swarmplot(x=None, y=None, hue=None, data=None, order=None, hue_order=None, dodge=False, orient=None, color=None, palette=None, size=5, edgecolor='gray', linewidth=0, ax=None, **kwargs)
 sns.swarmplot(data=iris, x="species", y="petal_length")
@@ -1991,6 +2062,7 @@ sns.swarmplot(x="time", y="tip", data=tips, order=["Dinner", "Lunch"])
 
 
     # Heatmap
+# Heat map을 통해 데이터 간의 수치에 따라 색상을 입힘으로써 직관적인 통찰을 얻을 수 있다.
 # 만약 데이터가 2차원이고 모든 값이 카테고리 값이면 변수 간 상관관계를 보기위해 heatamp 명령을 많이 사용한다.
 # `heatmap`: http://seaborn.pydata.org/generated/seaborn.heatmap.html
 
@@ -2029,42 +2101,52 @@ plt.show()
 
 
 
+    # Cluster Map
+# 행렬 데이터를 가지고 있고, 유사성에 따라 몇몇 특징들을 그룹화하기 원한다면 Cluster Map을 사용하면 된다.
+# 유사도가 높은 것들 순서대로 계층적으로 클러스터(Hiearchical Clustering)가 형성된다.
+sns.clustermap(df.corr(), annot=True, cmap='viridis')
+
+
+
      # KDE Plot
- # 커널 밀도(kernel density)는 커널이라는 함수를 겹치는 방법으로 히스토그램보다 부드러운 형태의 분포 곡선을 보여주는 방법이다.
- # * `kdeplot`: http://seaborn.pydata.org/generated/seaborn.kdeplot.html
+# 하나 혹은 두 개의 변수에 대한 분포를 그린다.
+# histplot은 절대량이라면 kdeplot은 밀도 추정치를 시각화한다.
+# 그래서 결과물로는 연속된 곡선의 그래프를 얻을 수 있다
+# 커널 밀도(kernel density)는 커널이라는 함수를 겹치는 방법으로 히스토그램보다 부드러운 형태의 분포 곡선을 보여주는 방법이다.
+# * `kdeplot`: http://seaborn.pydata.org/generated/seaborn.kdeplot.html
 
- # x축
- sns.kdeplot(data=tips, x="total_bill")
+# x축
+sns.kdeplot(data=tips, x="total_bill")
 
- # y축, 그래프를 가로로 나타냄
- sns.kdeplot(data=tips, y="total_bill")
+# y축, 그래프를 가로로 나타냄
+sns.kdeplot(data=tips, y="total_bill")
 
- # Plot distributions for each column of a wide-form dataset:
- sns.kdeplot(data=iris)
+# Plot distributions for each column of a wide-form dataset:
+sns.kdeplot(data=iris)
 
- # Use less smoothing:
- sns.kdeplot(data=tips, x="total_bill", bw_adjust=.2)
+# Use less smoothing:
+sns.kdeplot(data=tips, x="total_bill", bw_adjust=.2)
 
- # Use more smoothing, but don’t smooth past the extreme data points:
- ax= sns.kdeplot(data=tips, x="total_bill", bw_adjust=5, cut=0)
+# Use more smoothing, but don’t smooth past the extreme data points:
+ax= sns.kdeplot(data=tips, x="total_bill", bw_adjust=5, cut=0)
 
- # Plot conditional distributions with hue mapping of a second variable:
- sns.kdeplot(data=tips, x="total_bill", hue="time")
+# Plot conditional distributions with hue mapping of a second variable:
+sns.kdeplot(data=tips, x="total_bill", hue="time")
 
- # Modify the appearance of the plot:
- sns.kdeplot(
+# Modify the appearance of the plot:
+sns.kdeplot(
     data=tips, x="total_bill", hue="size",
     fill=True, common_norm=False, palette="crest",
     alpha=.5, linewidth=0,
- )
+)
 
- # 예를 들어 3개의 데이터 세트를 가지고 KDE 플롯을 그린다고 하면 이렇게
- # shade: 곡선 아래의 공간을 음영 처리할지 결정 (True/False)
- sns.kdeplot(dataset1, shade=True)
- sns.kdeplot(dataset2, shade=True)
- sns.kdeplot(dataset3, shade=True)
- plt.legend()
- plt.show()
+# 예를 들어 3개의 데이터 세트를 가지고 KDE 플롯을 그린다고 하면 이렇게
+# shade: 곡선 아래의 공간을 음영 처리할지 결정 (True/False)
+sns.kdeplot(dataset1, shade=True)
+sns.kdeplot(dataset2, shade=True)
+sns.kdeplot(dataset3, shade=True)
+plt.legend()
+plt.show()
 
 
 
@@ -2109,10 +2191,16 @@ sns.displot(iris.sepal_length, color='m', ax=axes[1, 1])
 plt.show()
 
 
+    # regplot
+# Regression 결과를 그래프로 보여준다.
+sns.regplot(x = 'tip', y = 'total_bill', data = df)
+
+
 
     # Implot
+# 이 plot은 regplot()과 faceGrid를 결합한 것이다.
 # Implot은 산포도에 직선을 그어서 추세선을 확인할 수 있게 한다.
-# regplot()과 유사하다
+# hue에 들어간 컬럼의 값을 구분하여 따로따로 모델링하여 결과를 보여준다.
 # col 옵션주어서 해당 column의 데이터 카테고리 종류별로 그래프를 나타낼 수 있다
 # * ` lmplot`: https://seaborn.pydata.org/generated/seaborn.lmplot.html
 sns.lmplot(data=iris, x='sepal_width', y='sepal_length', hue='species', fit_rug=True)
@@ -2134,7 +2222,37 @@ sns.lmplot(x="total_bill", y="tip", col="day", hue="day",
 plt.show()
 
 
+---------- Import codes ----------
 
+import pandas as pd
+import numpy as np
+import warnings
+warnings.filterwarnings('ignore')
+
+import time
+import arrow
+
+import collections
+
+import requests
+
+import os
+import glob
+
+from functools import pari
+from math import exp
+
+from tqdm import tqdm_notebook
+from tqdm import tqdm
+from tqdm import trange
+
+import matplotlib.pyplot as plt
+from matplotlib import rc
+plt.rc('font', family='malgun gothic')
+plt.rc('axes', unicode_minus=False)
+import seaborn as sns
+
+# !pip install tqdm
 
 ---------- 연습문제들 ----------
 
@@ -2432,38 +2550,6 @@ plt.show()
 # 상품별(중분류) 성별 구매수량 계산하여,  subplot이 적용된 Chart를 출력하시오
 # 서울시에 거주하는 실버고객의 지역별(구별) 분포를 Pie Chart로 시각화하시오
 # 변동계수 구하기 : 표준편차 / 평균
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
