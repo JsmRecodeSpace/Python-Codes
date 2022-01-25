@@ -2313,6 +2313,56 @@ setInterval(ClickConnect, 60 * 1000)
 
 ---------- Import Codes ----------
 
+    # basic import codes
+# Data Handling
+import pandas as pd
+import numpy as np
+from tqdm import tqdm
+
+
+# Data visualization
+import matplotlib.pyplot as plt
+import seaborn as sns
+plt.rc('font', family='malgun gothic')
+plt.rc('axes', unicode_minus=False)
+
+
+# Data Engineering
+from sklearn.preprocessing import LabelEncoder
+
+
+# Modeling & Tuning
+from sklearn.model_selection import KFold
+n_splits=5; seed = 42
+kfold = KFold(n_splits=n_splits, shuffle=True, random_state=seed)
+from sklearn.model_selection import cross_val_score
+
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import ExtraTreesRegressor
+from sklearn.ensemble import GradientBoostingRegressor
+from xgboost import XGBRegressor
+from lightgbm import LGBMRegressor
+from catboost import CatBoostRegressor
+from sklearn.svm import SVR
+from sklearn.linear_model import Ridge
+from sklearn.linear_model import Lasso
+from sklearn.linear_model import ElasticNet
+
+
+# Ensemble
+from itertools import combinations
+from sklearn.ensemble import VotingRegressor
+from mlxtend.classifier import StackingRegressor
+
+
+# Evaluation
+from sklearn.metrics import mean_absolute_error
+
+
+####################################################
+
+
 from sklearn.model_selection import train_test_split
 
 from sklearn.metrics import accuracy_score
@@ -2320,6 +2370,9 @@ from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import classfication_report
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_squared_error
+from scipy.stats.mstats import gmean
 
     # Cross Validation
 from sklearn.model_selection import KFold #for K-fold cross validation
@@ -2333,35 +2386,46 @@ print('cross-val-score.mean \n{:.3f}'.format(scores.mean()))
     # DT
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.tree import DeicisionTreeRegressor
-
     # RF
 from sklearn.ensemble import RandomForestClassifier
-
-    # GridSearch
-from sklearn.model_selection import GridSearchCV
-
+from sklearn.ensemble import RandomForestRegressor
+    # Extra
+from sklearn.ensemble import ExtraTreesClassifier
+from sklearn.ensemble import ExtraTreesRegressor
+    # GBM
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import GradientBoostingRegressor
     # XGB
 from xgboost import XGBClassifier
-import xgboost as xgb
-
+from xgboost import XGBRegressor
     # LGBM
 from lightgbm import LGBMClassifier
-
+from lightgbm import LGBMRegressor
+    # Cat
+from catboost import CatBoostClassifier
+from catboost import CatBoostRegressor
     # Logistic Regression
 from sklearn.linear_model import LogisticRegression
-
     # KNN
 from sklearn.neighbors import KNeighborsClassifier
-
+from sklearn.neighbors import KNeighborsRegressor
     # SVM
-from sklearn import svm
-clf = svm.SVC(kernel='linear', C=1).fit(X_train, y_train)
-clf.score(X_test, y_test)
-
-
+from sklearn.svm import SVC
+from sklearn.svm import SVR
+    # Ridge, Lasso, ElasticNet
+from sklearn.linear_model import Ridge
+from sklearn.linear_model import Lasso
+from sklearn.linear_model import ElasticNet
+    # GridSearch
+from sklearn.model_selection import GridSearchCV
+    # RandomSearch
+from sklearn.model_selection import RandomizedSearchCV
     # Ensemble
+from itertools import combinations
 from sklearn.ensemble import VotingClassifier
+from sklearn.ensemble import VotingRegressor
 from mlxtend.classifier import StackingClassifier
+from mlxtend.classifier import StackingRegressor
 
 
     # word2vec embedding (w2v)
@@ -2369,6 +2433,10 @@ from gensim.models import Word2Vec
 embedding_model = Word2Vec(tokenized_contents, size=100, window = 2, min_count=50, workers=4, iter=100, sg=1)
 # check embedding result
 print(embedding_model.most_similar(positive=["������"], topn=100))
+
+
+    # Save Model
+import joblib
 
 
     # XGB feature Importance
