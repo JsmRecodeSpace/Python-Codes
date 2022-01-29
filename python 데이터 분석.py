@@ -1942,6 +1942,19 @@ g = sns.catplot(data=tips, kind="box",
                 height=4, aspect=.7);'
 plt.show()
 
+    # Boxplot - Ex 1
+feature = numeric_feature
+# Boxplot 을 사용해서 데이터의 분포를 살펴봅니다.
+plt.figure(figsize=(20,15))
+plt.suptitle("Boxplots", fontsize=40)
+for i in range(len(feature)):
+    plt.subplot(4,3,i+1) # 수치형 데이터가 11개이므로 4*3=12개 자리가 필요합니다.
+    plt.title(feature[i])
+    plt.boxplot(data[feature[i]])
+plt.show()
+
+
+
 
 
     # Violinplot
@@ -1983,7 +1996,7 @@ sns.catplot(data=tips, kind="violin",
 # * `jointplot`: http://seaborn.pydata.org/generated/seaborn.jointplot.html
 # 기본 옵션으로 dropna=True 들어가있다
 # scatter도 기본 옵션이므로 구지 kind='scatter' 안써줘도 됨.
-sns.joinplot(data=iris, kind='scatter', x='sepal_length', y='sepal_width')
+sns.jointplot(data=iris, kind='scatter', x='sepal_length', y='sepal_width')
 
 # hue인자를 사용하면 가장자리에 각 변수의 kdeplot를 그려줌
 sns.jointplot(data=penguins, x="bill_length_mm", y="bill_depth_mm", hue="species")

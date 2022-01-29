@@ -2353,7 +2353,7 @@ from sklearn.linear_model import ElasticNet
 # Ensemble
 from itertools import combinations
 from sklearn.ensemble import VotingRegressor
-from mlxtend.classifier import StackingRegressor
+from mlxtend.regressor import StackingRegressor
 
 
 # Evaluation
@@ -2460,9 +2460,9 @@ from sklearn.tree import export_graphviz
 # !pip install catboost
 # !pip install selenium
 # pip install scikit_optimize
-!pip3 install jsonpath --user
-!pip install pyarrow --user
-
+#!pip3 install jsonpath --user
+#!pip install pyarrow --user
+#!pip install --upgrade ngboost
 
 ---------- 변수 생성 ----------
 
