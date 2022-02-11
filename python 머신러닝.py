@@ -2462,16 +2462,20 @@ from sklearn.tree import export_graphviz
 
 
 
-# pip install -U gensim
+# !pip install -U gensim
 # !pip install mlxtend
 # !pip install vecstack
 # !pip install bayesian-optimization
 # !pip install catboost
 # !pip install selenium
 # pip install scikit_optimize
-#!pip3 install jsonpath --user
-#!pip install pyarrow --user
-#!pip install --upgrade ngboost
+# !pip3 install jsonpath --user
+# !pip install pyarrow --user
+# !pip install --upgrade ngboost
+# !pip install torch
+# pip install opencv-python (아나콘다 프롬프트에)
+# !pip3 install torchvision
+# !pip install -U matplotlib
 
 ---------- 변수 생성 ----------
 
