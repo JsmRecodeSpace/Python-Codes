@@ -7,6 +7,7 @@
 * RNN
 * Import codes
 * 딥러닝의 발전을 이끈 알고리즘들
+* 공부하며 떠오른 것들
 * 혼합아이디어
 
 
@@ -141,6 +142,22 @@ for _ in range(num_epoch):
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
+
+    # Data Augmentation Ex - 1
+mnist_train = dset.MNIST("./", train=True,
+                         transform = transforms.Compose([
+                             transforms.Resize(34),                             # 원래 28x28인 이미지를 34x34로 늘립니다.
+                             transforms.CenterCrop(28),                         # 중앙 28x28를 뽑아냅니다.
+                             transforms.RandomHorizontalFlip(),                 # 랜덤하게 좌우반전 합니다.
+                             transforms.Lambda(lambda x: x.rotate(90)),         # 람다함수를 이용해 90도 회전해줍니다.
+                             transforms.ToTensor(),                             # 이미지를 텐서로 변형합니다.
+                         ]),
+                         target_transform=None,
+                         download=True)
+mnist_test = dset.MNIST("./", train=False, transform=transforms.ToTensor(), target_transform=None, download=True)
+
+
+
 
 
 
@@ -473,6 +490,334 @@ for i in range(num_epoch):
     if i % 10 == 0:
         print(i, loss, scheduler.get_lr())
 
+
+
+
+
+    #  Normalization (입력 데이터의 정규화)
+ - 정규화의 사전적 의미:
+   정규화 또는 정상화(normalization)는 어떤 대상을 일정한 규칙이나 기준에 따르는 ‘정규적인’ 상태로 바꾸거나,
+   비정상적인 대상을 정상적으로 되돌리는 과정을 뜻한다. 정규화 및 정상화라는 용어는 여러 분야에서 다음과 같이 사용된다.
+ - 학습 데이터에서는 잘 동작하는데 테스트 데이터에서는 학습이 제데로 안 된다면, 단순히 오버피팅 문제가 아니라 두 데이터의 분포가 달라서인 경우도 있습니다.
+    1. 다음 그림에서 왼쪽이 학습 데이터, 오른쪽이 테스트 데이터라고 하면, 학습 시에 결과가 잘 나오던 모델도 테스트 시에는 결과가 좋지 않게 나올 수 밖에 없을 것입니다.
+    2. 학습 시에도 데이터 간의 분포가 다르다면 각 분포에 맞춰 변수가 업데이트될 테니 그 데이터를 그대로 쓰면 학습조차 제대로 안 될 것입니다.
+ - 이럴 때 필요한 게 바로 정규화입니다.
+    (1) 데이터를 정규화는 방법에는 여러가지가 있는데 대표적인 방법으로는 표준화(stardardization)가 있습니다.
+    - 표준화의 과정: 정규화하기 전 -> x_ = x - μ -> x_ = (x - μ) / σ
+    - 표준화는 데이터에서 평균을 빼고 표준편차로 나눠주는 과정을 거치는데 이렇게 되면 평균은 0, 분산은 1이 되어 데이터 분포가 표준정규분포화됩니다.
+    - ★이렇게 되면 네트워크에 들어오는 입력값이 일정한 분포로 들어오기 때문에 학습에 유리합니다.
+    - 데이터로 모델을 학습할 때도 전체 데이터셋의 평균과 분산을 구해 데이터를 표준화하고 그 값을 입력으로 전달합니다.
+    (2) 표준화 이외에도 많이 사용되는 정규화 방법 중 최소극대화(minmax)정규화가 있습니다.
+    - 최소극대화 정규화는 데이터를 주로 0에서 1사이로 압축하거나 늘리는 방법으로 데이터에서 최솟값을 빼준 값을 데이터의 최대값과 최솟값의 차이로 나눠줌으로써 변형합니다
+    - x = (x - x.min()) / (x.max() - x.min())
+    - 이렇게 되면 0에서 1사이 밖에 있는 값들은 0과 1사이로 압축되고, 전체 범위가 1이 안 되던 값들은 0과 1사이로 늘어나게 됩니다.
+    - 하지만 평균적 범위를 넘어서는 너무 작거나 너무 큰 이상치가 있는 경우에는 오히려 학습에 방해가 되기도 합니다.
+
+    # 정규화를 하면 학습이 더 잘되는 이유
+ - 데이터가 정규화되지 않았을 때는 업데이트 과정에서 지그재그 모양으로 불필요한 업데이트가 많고 업데이트 횟수도 많이 필요합니다.
+   ★하지만 정규화된 손실 그래프는 원형에 가까운 형태를 가지기 때문에 불필요한 업데이트가 적고 더 큰 학습률을 적용할 수 있습니다.
+ - (자세한설명★)데이터가 정규화가 되지 않았다면 데이터의 각 요소별로 범위가 다를 것입니다. (feature 별로 범위가 다를 것)
+   그렇게 되면 모델을 학습시킬 때, 이상적으로 어떤 값은 크게 업데이트하고 어떤 값은 비교적 작은 수치로 업데이트 해야 빠른 시간안에
+   손실이 최소가 되는 지점에 도달할 것입니다. 하지만 각 변수마다 범위가 다르기 때문에 어떤 변수를 기준으로 학습률을 정하는지에 따라,
+   어떤 변수는 손실 최소 지점을 중심에 두고 왔다 갔다 할 것입니다. 이에 비해 정규화된 데이터는 변수들의 범위가 일정하기 때문에
+   비교적 높은 학습률을 적용시킬 수 있고 따라서 최소 지점에 더 빠르게 도달할 수 있게 됩니다.
+
+    # Normalization - Ex 1
+# 정규화는 transform을 통해 가능합니다.
+# 여기서 mean, std는 미리 계산된 값입니다.
+transforms.Normalize(mean, std, inplace=False) # 이미지를 정규화한다.
+
+# Normalization in the cifar100 example
+elif args.dataset == "cifar100":
+    train_transform = transforms.Compose([transforms.ToTensor()])
+    train_set = torchvision.datasets.CIFAR100(root=data_dir, train=True, download=True, transform=train_transform)
+#print(vars(train_dataset))
+    print(train_dataset.data.shape)
+    print(np.mean(train_dataset.data, axis=(0,1,2))/255)
+    print(np.std(train_dataset.data, axis=(0,1,2))/255)
+elif args.dataset == "mnist":
+    train_transform = transforms.Compose([transforms.ToTensor()])
+    train_set = torchvision.datasets.MNIST(root=data_dir, train=True, download=True, transform=train_transform)
+#print(vars(train_set))
+    print(list(train_dataset.data.size()))
+    print(train_dataset.data.float().mean()/255)
+    print(train_dataset.data.float().std()/255)
+
+# CIFAR10 standardization code
+mean = [0.4913, 0.4821, 0.4465], std = [0.2470, 0.2434, 0.2615]
+standardization = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize(mean, std)
+])
+train_dataset = datasets.CIFAR10(root='./data/cifar10', train=True, download=True, transform=train_transform)
+# CIFAR100 standarization code
+mean=[0.507, 0.487, 0.441], std=[0.267, 0.256, 0.276]
+standardization = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize(mean, std)
+])
+# MINST standardization code
+standardization = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=(0.1307,), std=(0.3081,))])
+
+
+    # Normalization - Ex 2
+mnist_train = dset.MNIST("./", train=True,
+                         transform=transforms.Compose([
+                             transforms.ToTensor(),
+                             transforms.Normalize(mean=(0.1307,), std=(0.3081,))
+                         ]),
+                         target_transform=None,
+                         download=True)
+mnist_test = dset.MNIST("./", train=False,
+                        transform=transforms.Compose([
+                             transforms.ToTensor(),
+                             transforms.Normalize(mean=(0.1307,), std=(0.3081,))
+                        ]),
+                        target_transform=None,
+                        download=True)
+
+
+
+
+    # Batch Normalization - 사전설명
+ 1. Internal Covariant Shift
+ - 입력 데이터의 분포가 달랐던 것처럼 하나의 신경망에 대해서 입력의 범위가 바뀌는 것을 공변량 변화(covariate shift)라고 하는데
+   딥러닝 모델 내부에서도 하나의 은닉층에 여러 범위의 입력이 들어오는 내부 공변량 변화(internal covariate shift)가 일어나게 됩니다.
+    -> 내부 공변량 변화: 학습 과정에서 계층 별로 입력의 데이터 분포가 달라지는 현상
+    -> 각 계층에서 입력으로 feature를 받게 되고 그 feature는 convolution이나 fully connected 연산을 거친 뒤 activation function을 적용하게 됩니다.
+         그러면 연산 전/후에 데이터 간 분포가 달라질 수가 있습니다.
+ 2. Batch 단위로 학습을 하게 되면 Batch 단위간에 데이터 분포의 차이가 발생할 수 있습니다.
+    즉, Batch 간의 데이터가 상이하다고 말할 수 있는데 위에서 말한 Internal Covariant Shift 문제입니다.
+    -> 이 문제를 개선하기 위한 개념이 Batch Normalization 개념이 적용됩니다.
+
+    # Batch Normalization - 정의설명
+ - 배치 정규화는 말 그대로 한 번에 입력으로 들어오는 배치 단위로 정규화하는 것을 의미합니다.
+   배치 정규화의 알고리즘을 살펴보면, 먼저 입력에 대해 평균과 분산을 구하고 정규화를 합니다.(각 배치 단위 별로 데이터가 다양한 분포를 가지더라도 각 배치별로 평균과 분산을 이용해 정규화하는 것)
+   그리고 정규화된 데이터를 스케일 및 시프트(scale & shift)하여 다음 레이어에 일정한 범위의 값들만 전달되게 합니다.
+    -> y_i = r*x^_i + β = BN_r,β(xi)
+ - 베타와 감마가 없다고 가정하면 정규화하는 수식과 일치합니다. 베타와 감마는 backprpagation을 통하여 학습을 하게 됩니다.
+   배치 정규화는 학습 시 배치 단위의 평균과 분산들을 차례대로 받아 이동평균과 이동분산을 저장해놓았다가 테스트할 때는
+   해당 배치의 평균과 분산을 구하지 않고 구해놓았던 평균과 분산으로 정규화합니다. -> eval()함수 이용.
+   (자세한 정보: https://gaussian37.github.io/dl-concept-batchnorm/)
+ -  batch normalization은 activation function 앞에 적용됩니다.
+    batch normalization을 적용하면 weight의 값이 평균이 0, 분산이 1인 상태로 분포가 되어지는데,
+    이 상태에서 ReLU가 activation으로 적용되면 전체 분포에서 음수에 해당하는 (1/2 비율) 부분이 0이 되어버립니다.
+    기껏 정규화를 했는데 의미가 없어져 버리게 됩니다.
+    따라서 γ,β가 정규화 값에 곱해지고 더해져서 ReLU가 적용되더라도 기존의 음수 부분이 모두 0으로 되지 않도록 방지해 주고 있습니다.
+    물론 이 값은 학습을 통해서 효율적인 결과를 내기 위한 값으로 찾아갑니다.
+ - 최근에는 데이터 하나당 정규화를 하는 인스턴스 정규화나 은닉층 가중치 정규화 등의 방법이 소개 되기도 했습니다.
+ - Batch Normalization은 1-Dimension, 2-Dimension, 3-Dimension 등 다양한 차원에 따라 적용되는 함수명이 다르기 때문에 유의해서 사용해야 합니다.
+ - nn.BatchNorm() 함수를 이용해 적용하는 부분은 논문이나 코드에 따라 activation function 이전에 적용하는지, 이후에 적용하는지 연구자들의 선호도에 따라 다르게 이용됩니다.
+    -> 아직도 어디에 적용하는 것이 나은지 논쟁중
+
+    # Batch Normalization 장점
+ - 은닉층 단위마다 배치 정규화를 넣어주면 내부 공변량의 변화를 방지하는 동시에 정규화의 장점인 더 큰 학습률의 사용도 가능해집니다.
+ - 학습 단계에서 모든 Feature에 정규화를 해주게 되면 정규화로 인하여 Feature가 동일한 Scale이 되어 learning rate 결정에 유리해집니다.
+   왜냐하면 Feature의 Scale이 다르면 gradient descent를 하였을 때, gradient가 다르게 되고 같은 learning rate에 대하여 weight마다 반응하는 정도가 달라지게 됩니다.
+   gradient의 편차가 크면 gradient가 큰 weight에서는 gradient exploding이, 작으면 vanishing 문제가 발생하곤 합니다.
+   하지만 정규화를 해주면 gradient descent에 따른 weight의 반응이 같아지기 때문에 학습에 유리해집니다.
+ - Input 분포를 정규화해 학습 속도를 빠르게 해줍니다.
+ - 학습 속도를 향상시켜주고 Gradient Vanishing / Exploding 문제도 완화해줍니다.
+ - 분포를 정규화해 비선형 활성 함수의 의미를 살리는 개념이라 볼 수 있습니다. (Batch Normalization을 사용하지 않는다면 Hidden Layer를 쌓으면서 비선형 활성 함수를 사용하는 의미가 없어질 가능성도 있습니다.)
+논문에서 주장하는 Batch Normalization의 장점은 다음과 같다.
+ - 기존 Deep Network에서는 learning rate를 너무 높게 잡을 경우 gradient가 explode/vanish 하거나, 나쁜 local minima에 빠지는 문제가 있었다.
+   이는 parameter들의 scale 때문인데, Batch Normalization을 사용할 경우 propagation 할 때 parameter의 scale에 영향을 받지 않게 된다.
+   따라서, learning rate를 크게 잡을 수 있게 되고 이는 빠른 학습을 가능케 한다.
+ - Batch Normalization의 경우 자체적인 regularization 효과가 있다.
+   이는 기존에 사용하던 weight regularization term 등을 제외할 수 있게 하며,
+   나아가 Dropout을 제외할 수 있게 한다 (Dropout의 효과와 Batch Normalization의 효과가 같기 때문.)
+   Dropout의 경우 효과는 좋지만 학습 속도가 다소 느려진다는 단점이 있는데, 이를 제거함으로서 학습 속도도 향상된다.
+
+
+   # Batch Normalization을 CNN에 적용시키고 싶을 경우 지금까지 설명한 방법과는 다소 다른 방법을 이용해야만 한다.
+ - 먼저, convolution layer에서 보통 activation function에 값을 넣기 전 Wx+b 형태로 weight를 적용시키는데,
+   ★Batch Normalization을 사용하고 싶을 경우 normalize 할 때 beta 값이 b의 역할을 대체할 수 있기 때문에 b를 없애준다.
+ - 또한, CNN의 경우 convolution의 성질을 유지시키고 싶기 때문에, 각 channel을 기준으로 각각의 Batch Normalization 변수들을 만든다.
+   예를 들어 m의 mini-batch-size, n의 channel size 를 가진 Convolution Layer에서 Batch Normalization을 적용시킨다고 해보자.
+   convolution을 적용한 후의 feature map의 사이즈가 p x q 일 경우, 각 채널에 대해 m x p x q 개의 각각의 스칼라 값에 대해
+   mean과 variance를 구하는 것이다. 최종적으로 gamma와 beta는 각 채널에 대해 한개씩 해서 총 n개의 독립적인 Batch Normalization 변수들이 생기게 된다.
+
+
+   # CNN Batch Normalization Ex - 1
+# 입력 데이터를 정규화하는것처럼 연산을 통과한 결과값을 정규화할 수 있습니다.
+# 그 다양한 방법중에 대표적인것이 바로 Batch Normalization이고 이는 컨볼루션 연산처럼 모델에 한 층으로 구현할 수 있습니다.
+# https://pytorch.org/docs/stable/nn.html?highlight=batchnorm#torch.nn.BatchNorm2d
+# nn.BatchNorm2d(x)에서 x는 입력으로 들어오는 채널의 개수입니다.
+class CNN(nn.Module):
+    def __init__(self):
+        super(CNN,self).__init__()
+        self.layer = nn.Sequential(
+            nn.Conv2d(1,16,3,padding=1),  # 28 x 28
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.Conv2d(16,32,3,padding=1), # 28 x 28
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.MaxPool2d(2,2),            # 14 x 14
+            nn.Conv2d(32,64,3,padding=1), # 14 x 14
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(2,2)             #  7 x 7
+        )
+        self.fc_layer = nn.Sequential(
+            nn.Linear(64*7*7,100),
+            nn.BatchNorm1d(100),
+            nn.ReLU(),
+            nn.Linear(100,10)
+        )
+
+    def forward(self,x):
+        out = self.layer(x)
+        out = out.view(batch_size,-1)
+        out = self.fc_layer(out)
+        return out
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---------- 공부하며 떠오른 것들 ----------
+
+학습시 언더피팅나면
+ - 모델 수용력 늘리기
+학습시 오버피팅나면
+ - 모델 수용력 줄이기
+    -> 수용력: 모델 노드 수, 모델 깊이
+
+
+오버피팅 시
+ - 1. 적정한 강도로 정형화, 규제(Regularzation)을 손실함수에 걸어주기
+ - 2. 최적화함수에 가중치부식 인수를 주기
+ - 3. 드랍아웃 적용
+ - 4. 모델의 수용력 줄이기
+
+
+기울시 소실이나 과다가 일어날 경우
+ - 모델에 Initialization 적용 (데이터가 몇 개의 레이어를 통과하더라도 활성화 값이 너무 커지거나 너무 작아지지 않고 일정한 범위 안에 있도록 잡아줌)
+ - Batch Normalization 적용 (grdient descent를 하였을 때, gradient의 편차가 갑자기 커지거나 작아지는 것 방지)
+
+
+높은 학습률과 빠른 학습을 위해
+ - 입력 데이터 정규화
+ - Initialization 적용
+ - Batch Normalization 적용
+
+
+학습은 잘 되었는데 테스트 데이터에 대해서 성능이 잘 안나올 때
+ - 분포가 데이터간의 분포가 달라서 그럴 수 있으니 그럴때는 데이터에 대한 정규화 진행
+
+
+스케일링은 정규화와 다르다.
+ - 스케일링은 분포의 모양이 변하진 않지만 정규화는 분포의 모양이 변하며 예시로는 ML에서 자주 사용했던 log1p화가 있다
+   그래서 안정적인 분포로 피처들의 왜도를 정규분포처럼 바꾸어 주어서 log1p를 사용하는 것
+
+
+
+
+
+    # Optimizer 정의
+ - 옵티마이저란 최적화 함수(optimization function)라고도 하며,
+   경사하강법을 적용하여 오차를 줄이고 최적의 가중치와 편차를 근사할 수 있게 하는 역할을 합니다.
+ - ★GPU CUDA를 사용할 계획이라면 optimizer를 정의하기 전에 model.cuda()를 미리 해놓아야 한다.
+   공식 홈페이지에 따르면,
+   If you need to move a model to GPU via .cuda(), please do so before constructing optimizers for it.
+   Parameters of a model after .cuda() will be different objects with those before the call.
+   In general, you should make sure that optimized parameters live in consistent locations when optimizers are constructed and used.
+   이유를 설명하자면
+   optimizer는 argument로 model의 parameter를 입력받는다.
+   .cuda()를 쓰면 모델의 parameter가 cpu 대신 gpu에 올라가는 것이므로 다른 object가 된다.
+   따라서 optimizer에 model parameter의 위치를 전달한 후 model.cuda()를 실행하면, 학습시켜야 할 parameter는 GPU에 올라가 있는데
+   optimizer는 cpu에 올라간 엉뚱한 parameter 위치를 참조하고 있는 것이 된다. 그러니 순서를 지키자.
+
+    # optimizer에 대해 알아 두어야 할 것들
+ 1. optimizer는 step() method를 통해 argument로 전달받은 parameter를 업데이트한다.
+ 2. 모델의 parameter별로(per-parameter) 다른 기준(learning rate 등)을 적용시킬 수 있다.
+ 3. torch.optim.Optimizer(params, defaults)는 모든 optimizer의 base class이다.
+ 4. nn.Module과 같이 state_dict()와 load_state_dict()를 지원하여 optimizer의 상태를 저장하고 불러올 수 있다.
+ 5. zero_grad() method는 optimizer에 연결된 parameter들의 gradient를 0으로 만든다.
+ 6. torch.optim.lr_scheduler는 epoch에 따라 learning rate를 조절할 수 있다.
+
+    # Optimizer의 종류:
+ º optim.Adadelta,
+ º optim.Adagrad,
+ º optim.Adam, optim.SparseAdam, optim.Adamax,
+ º optim.ASGD
+ º optim.LBFGS(LBFGS는 per-parameter 옵션이 지원되지 않는다. 또한 memory를 다른 optimizer에 비해 많이 잡아먹는다고 한다.),
+ º optim.RMSprop, optim.Rprop,
+ º optim.SGD
+ º ★ Leaky ReLU, ELU, prametric ReLU, SELU, SERLU
+
+
+    # Optimizer 종류 설명 - Ex 1
+    # SGD
+SGD: Batch 단위로 Back Propagation을 함
+
+    # Momentum
+ - momemtum은 미분을 통한 gradient 방향으로 가되, 일종의 관성을 추가하는 개념입니다.
+   일반적인 SGD는 조금씩 최저 해(Global Optinum)를 찾아갑니다. 전체 데이터에 대해 Back Propagation을 하는 것이 아니라
+   Batch 단위로 Back Propagation하기 때문에 일직선으로 찾아 가지 않습니다.
+   momemtum을 사용하면 최적의 장소로 더 빠르게 수렴할 수 있습니다. 걸어가는 보폭을 크게 하는 개념이라 이해하면 될 것 같습니다.
+   또한 최적 해가 아닌 지역해(Local Minimum)를 지나칠 수도 있다는 장점이 있습니다.
+
+    # NAG
+NAG(Nesterov Accelerated Gradient)
+ - NAG는 Momemtum을 약간 변형한 방법으로, Momemtum으로 이동한 후 Gradient를 구해 이동하는 방식입니다.
+
+    # Adagrad
+Adagrad(Adaptive Gradient)
+ - Adagrad의 개념은 '가보지 않은 곳은 많이 움직이고 가본 곳은 조금씩 움직이자' 입니다.
+   학습을 통해 크게 변동이 있었던 가중치에 대해서는 학습률을 감소시키고 학습을 통해 아직 가중치의 변동이 별로 없었던 가중치는 학습률을 증가시켜서 학습이 되게끔 한다.
+
+    # RMSProp
+ - RMSProp는 Adagrad의 단점을 보완한 방법입니다. Adagrad의 단점은 학습이 오래 진행될수록 부분이 계속 증가해 Step Size가 작아진다는 것인데,
+   RMSPorp는 G가 무한히 커지지 않도록 지수 평균을 내 계산합니다.
+
+    # Adadelta
+Adadelta(Adaptive Delta)
+ - Adadelta 또한 Adagrad의 단점을 보완한 방법입니다. Gradient를 구해 움직이는데,
+   Gradient의 양이 너무 적어지면 움직임이 멈출 수 있습니다. 이를 방지하기 위한 방법이 Adadelta입니다.
+
+    # Adam
+Adam(Adaptive Moment Estimation)
+ - Adam은 딥러닝 모델을 디자인할 때, 기본적으로 가장 많이 사용하는 optimizer로,
+   RMSProp와 Momentum 방식의 특징을 잘 결합한 방법입니다.
+   2020년을 기준으로 많은 딥러닝 모델에서 기본적으로 Adam을 많이 사용하고 있습니다.
+
+    # RAdam
+RAam(Rectified Adam optimizier)
+ - Adam뿐 아니라 대부분의 Optimizer는 학습 초기에 Bad Local Optimum에 수렴해 버릴 수 있는 단점이 있습니다.
+   학습 초기에 Gradient가 매우 작아져서 학습이 더 이상 일어나지 않는 현상이 발생하는 것입니다.
+   RAdam은 이러한 Adaptive Learning Rate Term의 분산을 교정(Recify)하는 Optimizer로
+   논문의 저자는 실험 결과를 통해 Learning Rate를 어떻게 조절하든 성능이 비슷하다는 것을 밝혔습니다.
+(출처 : https://www.slideshare.net/yongho/ss-79607172)
+
+
+    # Optimizer 종류 설명 - Ex 2
+GD: 모든 자료를 다 검토해서 내 위치의 산기울기를 계산해서 갈 방향 찾겠다.
+SGD: 전부 다봐야 한 걸음은 너무 오래 걸리니까 조금만 보고 빨리 판단한다. 같은 시간에 더 많이 간다.
+
+ - 스텝방향
+Momemtum: 스텝 계산해서 움직인 후, 아까 내려오던 관성 방향으로 또 가자
+Nag: 일단 관성 방향으로 움직이고, 움직인 자리에 스텝을 계산하니 더 빠르더라
+
+ - 스텝사이즈
+Adagrad: 안가본 곳은 성큼 빠르게 걸어 훑고 많이 가본 곳은 잘 아니까 갈수록 보폭을 줄여 세밀히 탐색
+AdaDelta: 종종걸음 너무 작아져서 정지하는 걸 막아보자
+RMSProp: 보폭을 줄이는 건 좋은데 이전 맥락 상황봐가며 하자.
+
+ - 스텝 방향, 스텝사이즈
+Adam: RMSProp + Momemtum, 방향도 스텝사이즈도 적절하게!
+Nadam: Adam에 Momemtum 대신 NAG를 붙이자.
 
 
 
