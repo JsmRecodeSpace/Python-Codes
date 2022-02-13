@@ -2,6 +2,7 @@
 
 
 # 목차
+* Pytorch Basic
 * DNN
 * CNN
 * RNN
@@ -13,7 +14,353 @@
 
 
 
+
+---------- Pytorch Basic ----------
+
+
+    # Random Numbers
+# 0에서 1사이의 랜덤한 숫자
+torch.rand()
+x = torch.rand(2,3)
+
+# 정규분포에서 샘플링한 값
+torch.randn()
+randn(*size, out=None, dtype=None, layout=torch.strided, device=None, requires_grad=False) -> Tensor
+x = torch.randn(2,3)
+
+# 시작과 끝 사이의 랜덤한 자연수(시작 포함, 끝 불포함)
+torch.randint()
+x = torch.randint(2,5, size=(2,3))
+
+
+
+    # Zeros & Ones
+torch.ones(): 1으로 채워진 텐서
+x = torch.ones(2,3)
+
+torch.zeros(): 0으로 채워진 텐서
+
+ones_like(x): x와 같은 shape이고 1로만 가득찬 텐서를 반환
+zeros_like(x): x와 같은 shape이고 0로만 가득찬 텐서를 반환
+    # Zeros & Ones -Ex 1
+x = torch.FloatTensor([[0, 1, 2], [2, 1, 0]])
+print(x)
+print(torch.ones_like(x))
+print(torch.zeros_like(x))
+    # Zeros & Ones -Ex 2
+x = torch.ones(2, 2, requires_grad=True) # 2 x 2 tensor를 생성하고 requires_grad=True를 설정하여 연산을 기록함.
+print(x)
+
+
+
+    # Tensor Data Type
+tensor.type(): 해당 텐서의 타입을 리턴하고 type(tensor)는 토치의 텐서 클래스라는 것을 리턴함
+x = torch.rand(2,3)
+print(x.type())
+print(type(x))
+
+# tensor.type()을 dtype과 함께 사용하면 텐서의 데이터 타입을 dtype에 넣어준 데이터 타입으로 바꿔줍니다.
+double_x = x.type(dtype=torch.DoubleTensor)
+print(double_x.type())
+
+# type_as
+# tensor.type_as(): type_as라는 함수를 사용해 데이터타입을 바꿀 수 있습니다.
+int_x = x.type_as(torch.IntTensor())
+print(int_x.type())
+
+
+
+    # Numpy to Tensor, Tensor to Numpy
+# torch.from_numpy(): 넘파이 배열을 토치텐서로 바꿀 수 있습니다.
+x1 = np.ndarray(shape=(2,3), dtype=int, buffer=np.array([1,2,3,4,5,6]))
+x2 = torch.from_numpy(x1)
+x2,x2.type()
+
+# tensor.numpy(): 토치 텐서를 .numpy()를 통해 넘파이 배열로 바꿀 수 있습니다.
+x3 = x2.numpy()
+x3
+
+
+
+    # Tensor on CPU & GPU
+# CUDA: use GPU
+torch.cuda.is_available(): 학습을 시킬 때는 GPU를 많이 사용한다. GPU가 사용가능한지 알 수 있다.
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+torch.cuda.device(device): 어느 device(GPU나 CPU)를 쓸 지 선택한다.
+torch.cuda.device_count(): 현재 선택된 device의 수를 반환한다.
+torch.cuda.init(): C API를 쓰는 경우 명시적으로 호출해야 한다.
+torch.cuda.set_device(device): 현재 device를 설정한다.
+torch.cuda.manual_seed(seed): 랜덤 숫자를 생성할 시드를 정한다. multi-gpu 환경에서는 manual_seed_all 함수를 사용한다.
+torch.cuda.empty_cache(): 사용되지 않는 cache를 release하나, 가용 메모리를 늘려 주지는 않는다.
+
+
+
+    # Tensor Size
+# size함수를 이용해 텐서의 형태를 알 수 있음
+x = torch.FloatTensor(10,12,3,3)
+x.size(), x.size()[1:2]
+
+
+
+
+    # Indexing
+# torch.index_select(): 지정한 차원 기준으로 원하는 값들을 뽑아낼 수 있습니다.
+x = torch.randn(4,3)
+# dim으로 차원 설정, index로 몇번째 행 or 몇번째 열 설정
+selected = torch.index_select(x, dim=1, index=torch.LongTensor([0,2]))
+
+# torch.masked_select(): 뽑고자 하는 값들을 마스킹해서 선택할 수 있습니다.
+x = torch.randn(2,3)
+mask = torch.ByteTensor([[0,0,1],[0,1,0]])
+out = torch.masked_select(x,mask)
+print(x, mask, out, sep="\n\n")
+
+
+
+    # Concatenate
+x = torch.FloatTensor([[1, 2], [3, 4]])
+y = torch.FloatTensor([[5, 6], [7, 8]])
+print(torch.cat([x, y], dim=0)) # 행으로 붙임 - 아래로 붙임
+print(torch.cat([x, y], dim=1)) # 열로 붙임 - 옆으로 붙임
+
+
+
+    # Stacking
+# Concatenate의 기능을 좀 더 편리하게 단축해 놓은 것
+x = torch.FloatTensor([1, 4])
+y = torch.FloatTensor([2, 5])
+z = torch.FloatTensor([3, 6])
+print(torch.stack([x, y, z])) # default로 dim=0으로 쌓음. 행으로 쌓음
+print(torch.stack([x, y, z], dim=1)) # 열로 쌓음
+## 위의 dim=0 한 코드는 아래의 코드와 같음
+print(torch.cat([x.unsqueeze(0), y.unsqueeze(0), z.unsqueeze(0)], dim=0))
+## 위의 dim=1 한 코드는 아래의 코드와 같음
+print(torch.cat([x.unsqueeze(1), y.unsqueeze(1), z.unsqueeze(1)], dim=1))
+
+
+
+    # Slicing
+# torch.chunk(): 텐서를 원하는 chunk 개수만큼으로 분리할 수 있습니다.
+x = torch.FloatTensor([[1,2,3],[4,5,6]])
+y = torch.FloatTensor([[-1,-2,-3],[-4,-5,-6]])
+z1 = torch.cat([x,y],dim=0)
+x_1, x_2 = torch.chunk(z1,2,dim=0)
+y_1, y_2, y_3 = torch.chunk(z1,3,dim=1)
+print(z1,x_1,x_2,z1,y_1,y_2,y_3,sep="\n")
+
+# torch.split() : 원하는 사이즈로 텐서를 자를 수 있습니다.
+x1,x2 = torch.split(z1,2,dim=0)
+y1 = torch.split(z1,2,dim=1) # y1에 z1의 두번째 열에서 잘라서 두 개의 텐서가 저장됨 (열 2개짜리, 열 1개짜리)
+print(z1,x1,x2,sep="\n")
+print("\nThis is y1:")
+for i in y1:
+      print(i)
+
+
+
+      # squeezing
+ - 길이가 1인 차원들을 압축시킬 수 있습니다.
+ - 쥐어 짜는 것
+ - 자동으로 디멘션이 1인 경우 해당 디멘션을 없애줌.
+ft = torch.FloatTensor([[0], [1], [2]])
+print(ft)
+print(ft.shape) # output: torch.Size([3, 1])
+print(ft.squeeze())
+print(ft.squeeze().shape) # output: torch.Size([3])
+# squeeze(dim=?)하고 ?값을 주었을 경우 해당 디멘션이 1일 경우 없애줌.
+x1 = torch.FloatTensor(10,1,3,1,4)
+x2 = torch.squeeze(x1)
+print(x1.size(),x2.size(),sep="\n")
+
+    # Unsqueeze
+ - squeeze와 반대로 unsqueeze를 통해 차원을 늘릴수 있습니다.
+ - 내가 원하는 디멘션에 1을 넣어줌.
+ - 따라서 원하는 디멘션을 꼭 명시해 주어야함
+ - view함수를 쓴 것과 비슷함
+x1 = torch.FloatTensor(10,3,4)
+x2 = torch.unsqueeze(x1, dim=0)
+x3 = torch.unsqueeze(x1, dim=1)
+print(x1.size(),x2.size(), x3.size(), sep="\n")
+# torch.Size([10, 3, 4])
+# torch.Size([1, 10, 3, 4])
+# torch.Size([10, 1, 3, 4])
+
+# -1 은 ft가 가지고 있는 마지막 dimension을 말함
+print(ft.unsqueeze(-1))
+print(ft.unsqueeze(-1).shape)
+
+    # Unsqueeze - Ex 1
+ft = torch.Tensor([0, 1, 2])
+print(ft.shape)
+print(ft.unsqueeze(0))
+print(ft.unsqueeze(0).shape)
+ # 밑의 view과 같은 결과
+print(ft.view([1, -1]))
+print(ft.view([1, -1]).shape)
+
+    # Unsqueeze - Ex 2
+print(ft.unsqueeze(1))
+print(ft.unsqueeze(1).shape)
+
+    # Unsqueeze - Ex 3
+x = torch.from_numpy(data['x'].values).unsqueeze(dim=1).float()
+y = torch.from_numpy(data['y'].values).unsqueeze(dim=1).float()
+
+
+
+    # 사칙연산
+print(torch.add(scalar1, scalar2))
+print(torch.sub(scalar1, scalar2))
+print(torch.mul(scalar1, scalar2))
+print(torch.div(scalar1, scalar2))
+
+print(torch.add(vector1, vector2))
+print(torch.sub(vector1, vector2))
+print(torch.mul(vector1, vector2))
+print(torch.div(vector1, vector2))
+print(torch.dot(vector1, vector2))
+
+torch.add(matrix1, matrix2)
+torch.sub(matrix1, matrix2)
+torch.mul(matrix1, matrix2)
+torch.div(matrix1, matrix2)
+# 행렬 곱 Matrix Multiplication -> matmul
+torch.matmul(matrix1, matrix2)
+
+torch.add(tensor1, tensor2)
+torch.sub(tensor1, tensor2)
+torch.mul(tensor1, tensor2)
+torch.div(tensor1, tensor2)
+torch.matmul(tensor1, tensor2)
+
+
+
+    # Broadcasting
+ - 우리가 벡터나, 행렬 등을 계산할때 계산이 가능하도록 항상 사이즈가 같은 것끼리 계산하곤 한다.
+   파이토치에서 제공하는 Broadcasting기능은 사이즈가 다른 것끼리 계산할 때 사이즈를 자동적으로 맞춰서 계산하도록 한다.
+ - 기존의 일반적인 곱셈의 경우에는 크기(shape)가 같아야 하지만 shape가 다른경우 BoardCasting 기능으로 계산이 될 수 있다.
+# Vector + scalar
+m1 = torch.FloatTensor([[1, 2]])
+m2 = torch.FloatTensor([3]) # 3 -> [[3, 3]]
+print(m1 + m2)
+output: tensor([[4., 5.]])
+
+# 2 x 1 Vector + 1 x 2 Vector
+m1 = torch.FloatTensor([[1, 2]])
+m2 = torch.FloatTensor([[3], [4]])
+print(m1 + m2)
+output: tensor([[4., 5.], # 1과 2에 3이 더해짐
+        	    [5., 6.]])# 1과 2에 4가 더해짐
+
+# 행렬의 곱이 연산되게 됨.
+print(m1.matmul(m2)) # 2 x 1
+# Broadingcasting 기능과 행렬내에서 각 자리가 같은 원소끼리 곱해져서 출력되게 됨
+print(m1.mul(m2))
+
+
+
+    # 파워 연산(x의 n승)
+# torch.pow(input,exponent)
+x1 = torch.FloatTensor(3,4)
+torch.pow(x1,2),x1**2
+
+
+    # exponential 연산
+# torch.exp(tensor,out=None)
+x1 = torch.FloatTensor(3,4)
+torch.exp(x1)
+
+
+    # 로그 연산
+# torch.log(input, out=None) -> natural logarithm
+x1 = torch.FloatTensor(3,4)
+torch.log(x1)
+
+
+    # 행렬곱 연산
+# torch.mm(mat1, mat2) -> matrix multiplication
+x1 = torch.FloatTensor(3,4)
+x2 = torch.FloatTensor(4,5)
+torch.mm(x1,x2)
+
+    # 배치 행렬곱 연산. 맨 앞에 batch 차원은 무시하고 뒤에 요소들로 행렬곱을 합니다.
+# torch.bmm(batch1, batch2) -> batch matrix multiplication
+x1 = torch.FloatTensor(10,3,4)
+x2 = torch.FloatTensor(10,4,5)
+torch.bmm(x1,x2).size()
+
+
+    # 두 텐서간의 프로덕트 연산
+# torch.dot(tensor1,tensor2) -> dot product of two tensor
+x1 = torch.tensor([2, 3])
+x2 = torch.tensor([2, 1])
+torch.dot(x1,x2)
+
+
+    # 행렬의 전치
+# torch.t(matrix) -> transposed matrix
+x1 = torch.tensor([[1,2],[3,4]])
+print(x1,x1.t(),sep="\n")
+
+
+    # 차원을 지정할 수 있는 행렬의 전치 연산
+# torch.transpose(input,dim0,dim1) -> transposed matrix
+x1 = torch.FloatTensor(10,3,4)
+print(x1.size(), torch.transpose(x1,1,2).size(), x1.transpose(1,2).size(),sep="\n")
+
+
+
+
+    # 1D Array with numpy
+t = np.array([0., 1., 2., 3., 4., 5., 6.])
+print('Rank of t: ', t.ndim) # 몇개의 차원인지
+print('Shape of t:' , t.shape) # shpae은 어떤 모양인지: 하나의 차원에 7개의 원소가 들어있어
+print(t.size()) # shape
+    # 2D Array with numpy
+t = np.array([[1., 2., 3.], [4., 5., 6.], [7., 8., 9.], [10., 11., 12.]])
+print(t[:, 1]) # Element
+print(t[:, 1].size())
+print(t[:, :-1]) # Slicing
+
+
+    # Mean
+t = torch.FloatTensor([[1, 2], [3, 4]])
+print(t)
+print(t.mean())
+print(t.mean(dim=0)) # 행 방향으로 mean을 계산
+print(t.mean(dim=1)) # 열 방향으로 mean을 계산
+print(t.mean(dim=-1)) # 해당 텐서의 마지막 dimension의 방향으로 mean을 계산
+
+    # Sum
+t = torch.FloatTensor([[1, 2], [3, 4]])
+print(t)
+print(t.sum())
+print(t.sum(dim=0)) # 행 방향으로 sum을 계산
+print(t.sum(dim=1)) # 열 방향으로 sum을 계산
+print(t.sum(dim=-1))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ---------- DNN ----------
+
+
+
 
 
 
