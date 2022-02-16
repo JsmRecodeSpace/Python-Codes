@@ -10,6 +10,7 @@
 * 딥러닝의 발전을 이끈 알고리즘들
 * 공부하며 떠오른 것들
 * 혼합아이디어
+* 기타 설명
 
 
 
@@ -22,6 +23,7 @@
 # 0에서 1사이의 랜덤한 숫자
 torch.rand()
 x = torch.rand(2,3)
+
 
 # 정규분포에서 샘플링한 값
 torch.randn()
@@ -341,9 +343,490 @@ print(t.sum(dim=-1))
 
 
 
+    # Max and Argmax
+# max: 가능 큰값 반환
+# argmax: 가장 큰값의 인덱스값 반환
+t = torch.FloatTensor([[1, 2], [3, 4]])
+print(t)
+print(t.max(dim=0)) # Returns two values: max and argmax
+                    # dim=0 이므로, 전체 행 중에 가장 큰 값
+print('Max: ', t.max(dim=0)[0]) # 행 방향으로 중에서 가장 큰 값
+print('Argmax: ', t.max(dim=0)[1]) # 해당 max값이 어느 디멘션에 있는지 인덱스 반환
 
 
 
+    # View
+ - Numpy의 reshape 메소드와 동일
+   Tensor의 모양을 자유적으로 바꿀 수 있도록 view함수를 익히도록 하자
+t = np.array([[[0, 1, 2],
+             [3, 4, 5]],
+             [[6, 7,8 ],
+             [9, 10, 11]]])
+ft = torch.FloatTensor(t)
+print(ft.shape)
+
+print(ft.view([-1, 3]))
+print(ft.view([-1, 3]).shape) # output: torch.Size([4, 3])
+print(ft.view([-1, 1, 3]))
+print(ft.view([-1, 1, 3]).shape) # output: torch.Size([4, 1, 3])
+
+
+
+    # Type Casting
+# 텐서의 타입을 바꾸어 준다.
+lt = torch.LongTensor([1, 2, 3, 4])
+print(lt)
+print(lt.float())
+# 조건문을 사용하여 넣어주면 True -> 1, False -> 0 으로 바꾸어줌
+bt = torch.ByteTensor([True, False, False, True])
+print(bt)
+print(bt.long())
+print(bt.float())
+
+
+
+    # In-place Operation
+ - 언더바(_)가 붙은 연산으로
+   판다스 메소드에서 inplace = True와 같은 역할을 함
+x = torch.FloatTensor([[1, 2], [3, 4]])
+print(x.mul(2.))
+print(x) # x에 할당을 안했으므로 x 값 출력시 2를 곱하지 않은 상태
+print(x.mul_(2.))
+print(x) # inplace operation으로 인해서 x 값 출력시 2를 곱한 상태를 출력
+
+
+
+
+    # torch.utils.data.DataLoader
+DataLoader(
+    dataset,
+    batch_size=1,
+    shuffle=False,
+    sampler=None,
+    batch_sampler=None,
+    num_workers=0,
+    collate_fn=None,
+    pin_memory=False,
+    drop_last=False,
+    timeout=0,
+    worker_init_fn=None,
+    multiprocessing_context=None,
+)
+# DataLoader - 설명 1
+ - DataLoader 객체는 학습에 쓰일 데이터 전체를 보관했다가, train 함수가 batch 하나를 요구하면
+   batch size 개수만큼 데이터를 꺼내서 준다고 보면 된다.
+   실제로 [batch size, num]처럼 미리 잘라놓는 것은 아니고, 내부적으로 Iterator에 포함된 Index가 존재한다.
+
+# DataLoader - 설명 2
+ - train() 함수가 데이터를 요구하면 사전에 저장된 batch size만큼 return하는 형태이다.
+   사용할 torch.utils.data.Dataset에 따라 반환하는 데이터(자연어, 이미지, 정답 label 등)는 조금씩 다르지만,
+   일반적으로 실제 DataLoader를 쓸 때는 다음과 같이 쓰기만 하면 된다.
+for idx, (data, label) in enumerate(data_loader):
+    ...
+
+# DataLoader - Ex 1
+ - DataLoader 안에 데이터가 어떻게 들어있는지 확인하기 위해, MNIST 데이터를 가져와 보자.
+   DataLoader는 torchvision.datasets 및 torchvision.transforms와 함께 자주 쓰이는데,
+   각각 Pytorch가 공식적으로 지원하는 dataset, 데이터 transformation 및 augmentation 함수들(주로 이미지 데이터에 사용)를 포함한다.
+   각각의 사용법은 아래 절을 참조한다.
+
+input_size = 28
+batch_size = 64
+transform = transforms.Compose([transforms.Resize((input_size, input_size)),
+                                transforms.ToTensor()])
+data_loader = DataLoader(
+    datasets.MNIST('data/mnist', train=True, download=True, transform=transform),
+    batch_size=batch_size,
+    shuffle=True)
+print('type:', type(data_loader), '\n')
+first_batch = data_loader.__iter__().__next__()
+print('{:15s} | {:<25s} | {}'.format('name', 'type', 'size'))
+print('{:15s} | {:<25s} | {}'.format('Num of Batch', '', len(data_loader)))
+print('{:15s} | {:<25s} | {}'.format('first_batch', str(type(first_batch)), len(first_batch)))
+print('{:15s} | {:<25s} | {}'.format('first_batch[0]', str(type(first_batch[0])), first_batch[0].shape))
+print('{:15s} | {:<25s} | {}'.format('first_batch[1]', str(type(first_batch[1])), first_batch[1].shape))
+# 총 데이터의 개수는 938 * 28 ~= 60000(마지막 batch는 32)이다.
+
+
+
+
+    # Custom Dataset 만들기
+ - nn.Module을 상속하는 Custom Model처럼, Custom DataSet은 torch.utils.data.Dataset를 상속해야 한다.
+   또한 override해야 하는 것은 다음 두 가지다. python dunder를 모른다면 먼저 구글링해보도록 한다.
+ 1. __len__(self): dataset의 전체 개수를 알려준다.
+ 2. __getitem__(self, idx): parameter로 idx를 넘겨주면 idx번째의 데이터를 반환한다.
+
+ - 위의 두 가지만 기억하면 된다. 전체 데이터 개수와, i번째 데이터를 반환하는 함수만 구현하면 Custom DataSet이 완성된다.
+   다음에는 완성된 DataSet을 torch.utils.data.DataLoader에 인자로 전달해주면 끝이다.
+
+ - 완전 필수는 아니지만 __init__()도 구현하는 것이 좋다.
+   1차함수 선형회귀(Linear Regression)의 예를 들면 다음과 같다.
+   데이터는 여기(https://drive.google.com/file/d/1gVxV5eD5NfyEO4aHSyAGmsDgUco8FQPb/view)에서 받을 수 있다.
+
+# Custom Dataset - Ex1
+class LinearRegressionDataset(Dataset):
+
+    def __init__(self, csv_file):
+        data = pd.read_csv(csv_file)
+        self.x = torch.from_numpy(data['x'].values).unsqueeze(dim=1).float()
+        self.y = torch.from_numpy(data['y'].values).unsqueeze(dim=1).float()
+
+    def __len__(self):
+        return len(self.x)
+
+    def __getitem__(self, idx):
+        x = self.x[idx]
+        y = self.y[idx]
+
+        return x, y
+
+dataset = LinearRegressionDataset('02_Linear_Regression_Model_Data.csv')
+
+
+
+    # Pytorch Model 구조 설명1
+# PyTorch의 모든 모델은 기본적으로 다음 구조를 갖는다.
+# PyTorch 내장 모델뿐 아니라 사용자 정의 모델도 반드시 이 정의를 따라야 한다.
+class Model_Name(nn.Module):
+    def __init__(self):
+        super(Model_Name, self).__init__()
+        self.module1 = ...
+        self.module2 = ...
+        """
+        ex)
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+        """
+
+    def forward(self, x):
+        x = some_function1(x)
+        x = some_function2(x)
+        """
+        ex)
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        """
+        return x
+
+# PyTorch 모델로 쓰기 위해서는 다음 조건을 따라야 한다.
+# 내장된 모델들(nn.Linear 등)은 당연히 이 조건들을 만족한다.
+  1. torch.nn.Module을 상속해야 한다.
+  2. __init__()과 forward()를 override해야 한다.
+     사용자 정의 모델의 경우 init과 forward의 인자는 자유롭게 바꿀 수 있다. 이름이 x일 필요도 없으며, 인자의 개수 또한 달라질 수 있다.
+     이 두 가지 조건은 PyTorch의 기능들을 이용하기 위해 필수적이다.
+
+# 따르지 않는다고 해서 에러를 내뱉진 않지만, 다음 규칙들은 따르는 것이 좋다:
+  1. __init__()에서는 모델에서 사용될 module을 정의한다. module만 정의할 수도, activation function 등을 전부 정의할 수도 있다.
+     아래에서 설명하겠지만 module은 nn.Linear, nn.Conv2d 등을 포함한다.
+     activation function은 nn.functional.relu, nn.functional.sigmoid 등을 포함한다.
+  2. forward()에서는 모델에서 행해져야 하는 계산을 정의한다(대개 train할 때). 모델에서 forward 계산과 backward gradient 계산이 있는데,
+     그 중 forward 부분을 정의한다. input을 네트워크에 통과시켜 어떤 output이 나오는지를 정의한다고 보면 된다.
+    º __init__()에서 정의한 module들을 그대로 갖다 쓴다.
+    º 위의 예시에서는 __init__()에서 정의한 self.conv1과 self.conv2를 가져다 썼고, activation은 미리 정의한 것을 쓰지 않고 즉석에서 불러와 사용했다.
+    º backward 계산은 PyTorch가 알아서 해 준다. backward() 함수를 호출하기만 한다면.
+
+
+    # Pytorch Model 구조 설명2
+# nn.Module
+ - nn.Module은 모든 PyTorch 모델의 base class이다.
+   모든 Neural Network Model(흔히 Net이라고 쓴다)은 nn.Module의 subclass이다.
+ - nn.Module을 상속한 어떤 subclass가 Nerual Network Model로 사용되려면 다음 두 메서드를 override해야 한다.
+  º __init__(self):
+# Initialize. 여러분이 사용하고 싶은, Model에 사용될 구성 요소들을 정의 및 초기화한다.
+     self.conv1 = nn.Conv2d(1, 20, 5)
+     self.conv2 = nn.Conv2d(20, 20, 5)
+     self.linear1 = nn.Linear(1, 20, bias=True)
+     # __init__에서 정의된 요소들을 잘 연결하여 모델을 구성한다. Nested Tree Structure가 될 수도 있다.
+
+  º forward(self, x):
+     x = F.relu(self.conv1(x))
+     return F.relu(self.conv2(x))
+# 다른 말로는 위의 두 메서드를 override하기만 하면 손쉽게 Custom net을 구현할 수 있다는 뜻이기도 하다.
+# 본문: https://greeksharifa.github.io/pytorch/2018/11/10/pytorch-usage-03-How-to-Use-PyTorch/
+# 참고: https://greeksharifa.github.io/pytorch/2018/11/02/pytorch-usage-02-Linear-Regression-Model/#import
+
+
+
+    # nn.Module 내장 함수
+ - nn.Module에 내장된 method들은 모델을 추가 구성/설정하거나,
+   train/eval(test) 모드 변경,
+   cpu/gpu 변경,
+   포함된 module 목록을 얻는 등의 활동에 초점이 맞춰져 있다.
+
+모델을 추가로 구성하려면,
+ - add_module(name, module): 현재 module에 새로운 module을 추가한다.
+ - apply(fn): 현재 module의 모든 submodule에 해당 함수(fn)을 적용한다.
+               주로 model parameter를 초기화할 때 자주 쓴다.
+모델이 어떻게 생겼는지 보려면,
+ - children(), modules(): 자식 또는 모델 전체의 모든 module에 대한 iterator를 반환한다.,
+ - named_buffers(), named_children(), named_modules(), named_parameters(): 위 함수와 비슷하지만 이름도 같이 반환한다.
+모델을 통째로 저장 혹은 불러오려면,
+ - state_dict(destination=None, prefix='', keep_vars=False)
+   모델의 모든 상태(parameter, running averages 등 buffer)를 딕셔너리 형태로 반환한다. ,
+ - load_state_dict(state_dict, strict=True)
+   parameter와 buffer 등 모델의 상태를 현 모델로 복사한다. strict=True이면 모든 module의 이름이 정확히 같아야 한다.
+학습 시에 필요한 함수들을 살펴보면,
+ - cuda(device=None): 모든 model parameter를 GPU 버퍼에 옮기는 것으로 GPU를 쓰고 싶다면 이를 활성화해주어야 한다.
+   GPU를 쓰려면 두 가지에 대해서만 .cuda()를 call하면 된다. 그 두 개는 모든 input batch 또는 tensor, 그리고 모델이다.
+ - .cuda()는 optimizer를 설정하기 전에 실행되어야 한다.
+   잊어버리지 않으려면 모델을 생성하자마자 쓰는 것이 좋다.
+ - eval(), train(): 모델을 train mode 또는 eval(test) mode로 변경한다.
+   Dropout이나 BatchNormalization을 쓰는 모델은 학습시킬 때와 평가할 때
+   구조/역할이 다르기 때문에 반드시 이를 명시하도록 한다.
+ - parameters(recurse=True): module parameter에 대한 iterator를 반환한다.
+   보통 optimizer에 넘겨줄 때 말고는 쓰지 않는다.
+ - zero_grad(): 모든 model parameter의 gradient를 0으로 설정한다.
+
+    # nn.Module 내장 함수 - Ex
+def user_defined_initialize_function(m):
+    pass
+model = torchvision.models.vgg16(pretrained=True)
+last_module = nn.Linear(1000, 32, bias=True)
+model.add_module('last_module', last_module)
+last_module.apply(user_defined_initialize_function)
+model.cuda()
+# set optimizer. model.parameter를 넘겨준다.
+optimizer = optim.Adam(model.parameters(), lr=0.0001, betas=(0.5, 0.999))
+# train
+model.train()
+for idx, (data, label) in dataloader['train']:
+    ...
+# test
+model.eval()
+for idx, (data, label) in dataloader['test']:
+    ...
+
+
+
+    # 모델 구성 방법
+ - 크게 6가지 정도의 방법이 있다.
+   nn 라이브러리를 잘 써서 직접 만들거나,
+   함수 또는 클래스로 정의,
+   cfg파일 정의,
+   또는 torchvision.models에 미리 정의된 모델을 쓰는 방법이 있다.
+
+# 단순한 방법
+ - 매우 단순한 모델을 만들 때는 굳이 nn.Module을 상속하는 클래스를 만들 필요 없이 바로 사용 가능하며, 단순하다는 장점이 있다.
+model = nn.Linear(in_features=1, out_features=1, bias=True)
+
+# nn.Sequential을 사용하는 방법
+sequential_model = nn.Sequential(
+    nn.Linear(in_features=1, out_features=20, bias=True),
+    nn.ReLU(),
+    nn.Linear(in_features=20, out_features=1, bias=True),
+)
+
+# nn layers
+ - 여러 Layer와 Activation function들을 조합하여 하나의 sequential model을 만들 수 있다.
+   역시 상대적으로 복잡하지 않은 모델 중 모델의 구조가 sequential한 모델에만 사용할 수 있다.
+linear1 = nn.Linear(2, 2, bias=True)
+linear2 = nn.Linear(2, 1, bias=True)
+sigmoid = nn.Sigmoid()
+model = nn.Sequential(linear1, sigmoid, linear2, sigmoid).to(device)
+
+# 함수로 정의하는 방법
+ - 바로 위의 모델과 완전히 동일한 모델이다. 함수로 선언할 경우 변수에 저장해 놓은 layer들을 재사용하거나, skip-connection을 구현할 수도 있다.
+   하지만 그 정도로 복잡한 모델은 아래 방법을 쓰는 것이 낫다.
+def TwoLayerNet(in_features=1, hidden_features=20, out_features=1):
+    hidden = nn.Linear(in_features=in_features, out_features=hidden_features, bias=True)
+    activation = nn.ReLU()
+    output = nn.Linear(in_features=hidden_features, out_features=out_features, bias=True)
+    net = nn.Sequential(hidden, activation, output)
+    return net
+model = TwoLayerNet(1, 20, 1)
+
+# nn.Module을 상속한 클래스를 정의하는 방법
+ - 가장 정석이 되는 방법이다. 또한, 복잡한 모델을 구현하는 데 적합하다.
+   __init__ 함수에 있는 super 클래스는 부모 클래스인 nn.Module을 초기화하는 역할을 한다.
+class TwoLinearLayerNet(nn.Module):
+
+    def __init__(self, in_features, hidden_features, out_features):
+        super(TwoLinearLayerNet, self).__init__()
+        self.linear1 = nn.Linear(in_features=in_features, out_features=hidden_features, bias=True)
+        self.linear2 = nn.Linear(in_features=hidden_features, out_features=out_features, bias=True)
+
+    def forward(self, x):
+        x = F.relu(self.linear1(x))
+        return self.linear2(x)
+
+model = TwoLinearLayerNet(1, 20, 1)
+
+ - 역시 동일한 모델을 구현하였다. 여러분의 코딩 스타일에 따라, ReLU 등의 Activation function을 forward()에서 바로 정의해서 쓰거나,
+   __init__()에 정의한 후 forward에서 갖다 쓰는 방법을 선택할 수 있다. 후자의 방법은 아래와 같다.
+  물론 변수명은 전적으로 여러분의 선택이지만, activation1, relu1 등의 이름을 보통 쓰는 것 같다.
+
+class TwoLinearLayerNet(nn.Module):
+
+    def __init__(self, in_features, hidden_features, out_features):
+        super(TwoLinearLayerNet, self).__init__()
+        self.linear1 = nn.Linear(in_features=in_features, out_features=hidden_features, bias=True)
+        self.activation1 = nn.ReLU()
+        self.linear2 = nn.Linear(in_features=hidden_features, out_features=out_features, bias=True)
+
+    def forward(self, x):
+        x = self.activation1(self.linear1(x))
+        return self.linear2(x)
+
+model = TwoLinearLayerNet(1, 20, 1)
+
+ - 두 코딩 스타일의 차이점 중 하나는 import하는 것이 다르다(F.relu와 nn.ReLU는 사실 거의 같다).
+   Activation function 부분에서 torch.nn.functional은 torch.nn의 Module에 거의 포함되는데,
+   forward()에서 정의해서 쓰느냐 마느냐에 따라 다르게 선택하면 되는 정도이다.
+
+
+# cfg(config)를 정의한 후 모델을 생성하는 방법
+ - 처음 보면 알아보기 까다로운 방법이지만, 매우 복잡한 모델의 경우 .cfg 파일을 따로 만들어 모델의 구조를 정의하는 방법이 존재한다.
+   많이 쓰이는 방법은 대략 두 가지 정도인 것 같다.
+   먼저 PyTorch documentation에서 찾을 수 있는 방법이 있다. 예로는 VGG를 가져왔다. 코드는 여기에서 찾을 수 있다. (https://pytorch.org/docs/0.4.0/_modules/torchvision/models/vgg.html)
+
+class VGG(nn.Module):
+
+    def __init__(self, features, num_classes=1000, init_weights=True):
+        super(VGG, self).__init__()
+        self.features = features
+        self.classifier = nn.Sequential(...)
+        if init_weights:
+            self._initialize_weights()
+
+    def forward(self, x):...
+
+    def _initialize_weights(self):...
+
+    def make_layers(cfg, batch_norm=False):
+        layers = []
+        in_channels = 3
+        for v in cfg:
+            if v == 'M':
+                layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
+            else:
+                conv2d = nn.Conv2d(in_channels, v, kernel_size=3, padding=1)
+                if batch_norm:
+                    layers += [conv2d, nn.BatchNorm2d(v), nn.ReLU(inplace=True)]
+                else:
+                    layers += [conv2d, nn.ReLU(inplace=True)]
+                in_channels = v
+        return nn.Sequential(*layers)
+
+    cfg = {
+        'A': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
+        'B': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
+        'D': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
+        'E': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M'],
+    }
+
+def vgg16(pretrained=False, **kwargs):
+    """VGG 16-layer model (configuration "D")"""
+    if pretrained:
+        kwargs['init_weights'] = False
+    model = VGG(make_layers(cfg['D']), **kwargs)
+    if pretrained:
+        model.load_state_dict(model_zoo.load_url(model_urls['vgg16']))
+    return model
+
+ - 여기서는 .cfg 파일이 사용되지는 않았으나, cfg라는 변수가 configuration을 담당하고 있다.
+   VGG16 모델을 구성하기 위해 cfg 변수의 해당하는 부분을 읽어 make_layer 함수를 통해 모델을 구성한다.
+ - 더 복잡한 모델은 아예 따로 .cfg 파일을 빼놓는다. YOLO의 경우 수백 라인이 넘기도 한다.
+
+ - .cfg 파일은 대략 다음과 같이 생겼다.
+[net]
+# Testing
+bsatch=1
+subdivisions=1
+# Training
+# batch=64
+# subdivisions=8
+...
+
+[convolutional]
+batch_normalize=1
+filters=32
+size=3
+stride=1
+pad=1
+activation=leaky
+
+[maxpool]
+size=2
+stride=2
+...
+
+ - 이를 파싱하는 코드도 있어야 한다.
+def parse_cfg(cfgfile):
+    blocks = []
+    fp = open(cfgfile, 'r')
+    block =  None
+    line = fp.readline()
+    while line != '':
+        line = line.rstrip()
+        if line == '' or line[0] == '#':
+            line = fp.readline()
+            continue
+        elif line[0] == '[':
+            if block:
+                blocks.append(block)
+            block = dict()
+            block['type'] = line.lstrip('[').rstrip(']')
+            # set default value
+            if block['type'] == 'convolutional':
+                block['batch_normalize'] = 0
+        else:
+            key,value = line.split('=')
+            key = key.strip()
+            if key == 'type':
+                key = '_type'
+            value = value.strip()
+            block[key] = value
+        line = fp.readline()
+
+    if block:
+        blocks.append(block)
+    fp.close()
+    return blocks
+ - 이 방법의 경우 대개 depth가 수십~수백에 이르는 아주 거대한 모델을 구성할 때 사용되는 방법이다.
+   많은 수의 github 코드들이 이런 방식을 사용하고 있는데, 그러면 그 모델은 굉장히 복잡하게 생겼다는 뜻이 된다.
+
+
+
+    # Containers
+ - 여러 layer들을 하나로 묶는 데 쓰인다.
+   종류는 다음과 같은 것들이 있는데, Module 설계 시 자주 쓰는 것으로 nn.Sequential이 있다.
+    º nn.Module
+    º nn.Sequential
+    º nn.ModuleList
+    º nn.ModuleDict
+    º nn.ParameterList
+    º nn.ParameterDict
+# 본문: https://greeksharifa.github.io/pytorch/2018/11/10/pytorch-usage-03-How-to-Use-PyTorch/
+# 참조: https://pytorch.org/docs/stable/nn.html#containers
+
+    # nn.Sequential
+ - 이름에서 알 수 있듯 여러 module들을 연속적으로 연결하는 모델이다.
+model = nn.Sequential(
+         nn.Conv2d(1,20,5),
+         nn.ReLU(),
+         nn.Conv2d(20,64,5),
+         nn.ReLU()
+         )
+# model(x)는 nn.ReLU(nn.Conv2d(20,64,5)(nn.ReLU(nn.Conv2d(1,20,5)(x))))와 같음.
+
+model = nn.Sequential(
+          nn.Linear(1,6),
+          nn.ReLU(),
+          nn.Linear(6,10),
+          nn.ReLU(),
+          nn.Linear(10,6),
+          nn.ReLU(),
+          nn.Linear(6,1),
+      )
+
+    # Example of using Sequential with OrderedDict
+model = nn.Sequential(OrderedDict([
+          ('conv1', nn.Conv2d(1,20,5)),
+          ('relu1', nn.ReLU()),
+          ('conv2', nn.Conv2d(20,64,5)),
+          ('relu2', nn.ReLU())
+        ]))
+ - 조금 다르지만 비슷한 역할을 할 수 있는 것으로는 nn.ModuleList, nn.ModuleDict가 있다.
 
 
 
@@ -411,7 +894,8 @@ transforms.RandomErasing(p=0.5, scale=(0.02, 0.33), ratio=(0.3, 3.3), value=0, i
         # Randomly selects a rectangle region in an image and erases its pixels.
     # Random Choice
 transforms.RandomChoice([transforms.RandomGrayscale(p=0.5),
-                         transforms.RandomVerticalFlip(p=0.5)]) # 랜덤으로 다음 방법들 중 선택하여 적용
+                         transforms.RandomVerticalFlip(p=0.5)]) # transforms 리스트에 포함된 변환 함수 중 랜덤으로 1개 적용
+    transforms.RandomApply(transforms, p=0.5) # transforms 리스트에 포함된 변환 함수들을 p의 확률로 적용한다.
     # Color Jitter(brightness(밝기), contrast(대비), saturation(채도), hue(색조), all)
 transforms.ColorJitter(brightness=(0.2, 3)) # 랜덤하게 brightness를 설정. float값으로 줄 수도 있지만 tuple로 (min, max)값을 설정할 수 있음.
 transforms.ColorJitter(contrast=(0.2, 3))   # 랜덤하게 contrast를 설정. float 값으로 줄수도 있지만 tuple로 (min, max)값을 설정할수도 있음
@@ -490,6 +974,18 @@ for _ in range(num_epoch):
         optimizer.step()
         optimizer.zero_grad()
 
+
+# 위의 모든 변환 함수들을 하나로 조합하는 함수는 다음과 같다.
+# 이 함수를 dataloader에 넘기면 이미지 변환 작업이 간단하게 완료된다.
+    transforms.Compose(transforms)
+        transforms.Compose([
+            transforms.CenterCrop(14),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
+        ])
+# 변환 순서는 보통 resize/crop, toTensor, Normalize 순서를 거친다. Normalize는 tensor에만 사용 가능하므로 이 부분은 순서를 지켜야 한다.
+
+
     # Data Augmentation Ex - 1
 mnist_train = dset.MNIST("./", train=True,
                          transform = transforms.Compose([
@@ -542,6 +1038,34 @@ class CNN(nn.Module):
 ---------- RNN ----------
 
 
+    # torchtext
+# 자연어처리(NLP)를 다룰 때 쓸 수 있는 좋은 라이브러리가 있다.
+# 이는 자연어처리 데이터셋을 다루는 데 있어서 매우 편리한 기능을 제공한다.
+ º 데이터셋 로드
+ º 토큰화(Tokenization)
+ º 단어장(Vocabulary) 생성
+ º Index mapping: 각 단어를 해당하는 인덱스로 매핑
+ º 단어 벡터(Word Vector): word embedding을 만들어준다. 0이나 랜덤 값 및 사전학습된 값으로 초기화할 수 있다.
+ º Batch 생성 및 (자동) padding 수행
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ---------- Import Codes ----------
 
@@ -581,6 +1105,47 @@ if device == 'cuda':
  - 수용력과 언더피팅, 오버피팅의 관계를 살펴보았을 때
    언더피팅으로 판명이 되면 모델의 수용력을 늘려야 할 필요가 있고,
    오버피팅으로 판명이 되면 모델의 수용력을 줄임으로써 최적 수용력에 가까워지게 해야 함.
+
+
+
+    # Activation Function 설명
+ - 활성함수는 어떤 신호를 입력받아 이를 적절히 처리해 출력해주는 함수를 의미합니다.
+
+ - 시그모이드를 activation 함수로써 쓰게 되면 Back Propagation 과정 중에 미분한 값을 계속 곱해주면서 Gradient값이 앞 단의 Layer로 올수록 0으로 수렴하는 현상이 발생합니다.
+   이를 'Gradient Vanishing'이라 하며 이는 Hidden Layer가 싶어질수록 심해지기 때문에 Hidden Layer를 깊게 쌓아 복잡한 모델을 만들 수 있다는 장점이 없게 됩니다.
+
+ - ReLU(Rectified Linear Unit)함수는 기존의 시그모이드 함수와 같은 비선형 활성 함수가 지니고 있는 문제점을 어느 정도 해결한 활성 함수 입니다.
+   활성 함수 ReLU는 f(x) = max(0, x)와 같이 정의어서 입력 값이 0 이상이면 이 값을 그대로 출력하고, 0 이하이면 0으로 출력하는 함수입니다.
+   이 활성 함수가 시그모이드 함수에 비해 좋은 이유는 이 활성 함수를 미분할 때 입력 값이 0 이상인 부분은 기울기가 1, 입력 값이 0 이하인 부분은 0이 되기 때문입니다.
+   즉, Back Propagation 과정 중 곱해지는 Activation 미분값이 0 또는 1이 되기 때문에 아예 없애거나 완전히 살리는 것으로 해석할 수 있습니다.
+
+ - ReLU의 변형 함수인 다양한 함수가 나오기 시작했습니다. Leaky ReLU, ELU, parametric ReLU, SELU, SERLU 등..
+
+ - Leaky ReLU는 수식을 f(x) = max(ax, x)로 변형시키고 상수 a에 작은 값을 설정함으로써 0 이하의 자극이 들어왔을 때도 활성화 값이 전달 되게 합니다
+   예를 들어 a가 0.2라고 하면 0이하의 자극에는 0.2를 곱해 전달하고 0보다 큰 자극은 그대로 전달하는 활성화 함수가 됩니다.
+   이렇게 되면 역전파가 일어날 때, 0 이하인 부분에서는 가중치가 양의 방향으로 업데이트되고 0보다 큰 부분에서는 음의 방향으로 업데이트되므로 다잉 뉴런 현상을 방지할 수 있습니다.
+
+ - 랜덤 리키 렐루의 경우는 a의 값을 랜덤하게 지정하는 활성화 함수입니다.
+
+ - 활성함수는 딥러닝을 적용하는 분야에 따라 조금씩 성능의 차이가 있습니다.
+
+    # Pytorch Activation function의 종류
+1. Non-linear activations
+    º nn.ELU
+    º nn.SELU
+    º nn.Hardshrink, nn.Hardtanh
+    º nn.LeakyReLU, nn.PReLU, nn.ReLU, nn.ReLU6, nn.RReLU
+    º nn.Sigmoid, nn.LogSigmoid
+    º nn.Softplus, nn.Softshrink, nn.Softsign
+    º nn.Tanh, nn.Tanhshrink
+    º nn.Threshold
+2. Non-linear activations(other)
+    º nn.Softmin
+    º nn.Softmax, nn.Softmax2d, nn.LogSoftmax
+    º nn.AdaptiveLogSoftmaxWithLoss
+# 본문: https://greeksharifa.github.io/pytorch/2018/11/10/pytorch-usage-03-How-to-Use-PyTorch/
+# 참조: https://pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity
+
 
 
 
@@ -1022,56 +1587,6 @@ class CNN(nn.Module):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
----------- 공부하며 떠오른 것들 ----------
-
-학습시 언더피팅나면
- - 모델 수용력 늘리기
-학습시 오버피팅나면
- - 모델 수용력 줄이기
-    -> 수용력: 모델 노드 수, 모델 깊이
-
-
-오버피팅 시
- - 1. 적정한 강도로 정형화, 규제(Regularzation)을 손실함수에 걸어주기
- - 2. 최적화함수에 가중치부식 인수를 주기
- - 3. 드랍아웃 적용
- - 4. 모델의 수용력 줄이기
-
-
-기울시 소실이나 과다가 일어날 경우
- - 모델에 Initialization 적용 (데이터가 몇 개의 레이어를 통과하더라도 활성화 값이 너무 커지거나 너무 작아지지 않고 일정한 범위 안에 있도록 잡아줌)
- - Batch Normalization 적용 (grdient descent를 하였을 때, gradient의 편차가 갑자기 커지거나 작아지는 것 방지)
-
-
-높은 학습률과 빠른 학습을 위해
- - 입력 데이터 정규화
- - Initialization 적용
- - Batch Normalization 적용
-
-
-학습은 잘 되었는데 테스트 데이터에 대해서 성능이 잘 안나올 때
- - 분포가 데이터간의 분포가 달라서 그럴 수 있으니 그럴때는 데이터에 대한 정규화 진행
-
-
-스케일링은 정규화와 다르다.
- - 스케일링은 분포의 모양이 변하진 않지만 정규화는 분포의 모양이 변하며 예시로는 ML에서 자주 사용했던 log1p화가 있다
-   그래서 안정적인 분포로 피처들의 왜도를 정규분포처럼 바꾸어 주어서 log1p를 사용하는 것
-
-
-
-
-
     # Optimizer 정의
  - 옵티마이저란 최적화 함수(optimization function)라고도 하며,
    경사하강법을 적용하여 오차를 줄이고 최적의 가중치와 편차를 근사할 수 있게 하는 역할을 합니다.
@@ -1170,7 +1685,133 @@ Nadam: Adam에 Momemtum 대신 NAG를 붙이자.
 
 
 
+
+
+
+
+
+
+
+
+---------- 공부하며 떠오른 것들 ----------
+
+학습시 언더피팅나면
+ - 모델 수용력 늘리기
+학습시 오버피팅나면
+ - 모델 수용력 줄이기
+    -> 수용력: 모델 노드 수, 모델 깊이
+
+
+오버피팅 시
+ - 1. 적정한 강도로 정형화, 규제(Regularzation)을 손실함수에 걸어주기
+ - 2. 최적화함수에 가중치부식 인수를 주기
+ - 3. 드랍아웃 적용
+ - 4. 모델의 수용력 줄이기
+
+
+기울시 소실이나 과다가 일어날 경우
+ - 모델에 Initialization 적용 (데이터가 몇 개의 레이어를 통과하더라도 활성화 값이 너무 커지거나 너무 작아지지 않고 일정한 범위 안에 있도록 잡아줌)
+ - Batch Normalization 적용 (grdient descent를 하였을 때, gradient의 편차가 갑자기 커지거나 작아지는 것 방지)
+
+
+높은 학습률과 빠른 학습을 위해
+ - 입력 데이터 정규화
+ - Initialization 적용
+ - Batch Normalization 적용
+
+
+학습은 잘 되었는데 테스트 데이터에 대해서 성능이 잘 안나올 때
+ - 분포가 데이터간의 분포가 달라서 그럴 수 있으니 그럴때는 데이터에 대한 정규화 진행
+
+
+스케일링은 정규화와 다르다.
+ - 스케일링은 분포의 모양이 변하진 않지만 정규화는 분포의 모양이 변하며 예시로는 ML에서 자주 사용했던 log1p화가 있다
+   그래서 안정적인 분포로 피처들의 왜도를 정규분포처럼 바꾸어 주어서 log1p를 사용하는 것
+
+
+
+
+
+
+
+
 ---------- 혼합아이디어 ----------
+
+
+
+
+
+
+
+---------- 기타 설명 ----------
+
+* 데이터셋
+* Pytorch Layer의 종류
+* Pytorch Activation function의 종류
+
+
+
+
+    # torchvision.datasets
+# 참조: https://pytorch.org/docs/stable/torchvision/datasets.html
+# Pytorch가 공식적으로 다운로드 및 사용을 지원하는 datasets이다. 2020.02.04 기준 dataset 목록은 다음과 같다.
+# MNIST
+MNIST(숫자 0~9에 해당하는 손글씨 이미지 6만(train) + 1만(test))
+Fashion-MNIST(간소화된 의류 이미지),
+KMNIST(일본어=히라가나, 간지 손글씨),
+EMNIST(영문자 손글씨),
+QMNIST(MNIST를 재구성한 것)
+# MS COCO
+Captions(이미지 한 장과 이를 설명하는 한 영문장),
+Detection(이미지 한 장과 여기에 있는 object들을 segmantation한 정보)
+# LSUN(https://www.yf.io/p/lsun)
+# ImageFolder, DatasetFolder
+# Image
+ImageNet 2012,
+CIFAR10 & CIFAR100,
+STL10, SVHN, PhotoTour, SBU
+# Flickr8k & Flickr30k, VOC Segmantation & Detection,
+# Cityscapes, SBD, USPS, Kinetics-400, HMDB51, UCF101
+# 각각의 dataset마다 필요한 parameter가 조금씩 다르기 때문에, MNIST만 간단히 설명하도록 하겠다. 사실 공식 홈페이지를 참조하면 어렵지 않게 사용 가능하다.
+
+
+
+    # Pytorch Layer의 종류
+1. Linear layers
+    º nn.Linear
+    º nn.Bilinear
+2. Convolution layers
+    º nn.Conv1d, nn.Conv2d, nn.Conv3d
+    º nn.ConvTranspose1d, nn.ConvTranspose2d, nn.ConvTranspose3d
+    º nn.Unfold, nn.Fold
+3. Pooling layers
+    º nn.MaxPool1d, nn.MaxPool2d, nn.MaxPool3d
+    º nn.MaxUnpool1d, nn.MaxUnpool2d, nn.MaxUnpool3d
+    º nn.AvgPool1d, nn.AvgPool2d, nn.AvgPool3d
+    º nn.FractionalMaxPool2d
+    º nn.LPPool1d, nn.LPPool2d
+    º nn.AdaptiveMaxPool1d, nn.AdaptiveMaxPool2d, nn.AdaptiveMaxPool3d
+    º nn.AdaptiveAvgPool1d, nn.AdaptiveAvgPool2d, nn.AdaptiveAvgPool3d
+4. Padding layers
+    º nn.ReflectionPad1d, nn.ReflectionPad2d
+    º nn.ReplicationPad1d, nn.ReplicationPad2d, nn.ReplicationPad3d
+    º nn.ZeroPad2d
+    º nn.ConstantPad1d, nn.ConstantPad2d, nn.ConstantPad3d
+5. Normalization layers
+    º nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d
+    º nn.GroupNorm
+    º nn.InstanceNorm1d, nn.InstanceNorm2d, nn.InstanceNorm3d
+    º nn.LayerNorm
+    º nn.LocalResponseNorm
+6. Recurrent layers
+    º nn.RNN, nn.RNNCell
+    º nn.LSTM, nn.LSTMCell
+    º nn.GRU, nn.GRUCell
+8. Sparse layers
+    º nn.Embedding
+    º nn.EmbeddingBag
+# 본문: https://greeksharifa.github.io/pytorch/2018/11/10/pytorch-usage-03-How-to-Use-PyTorch/
+# 참조: https://pytorch.org/docs/stable/nn.html#module
 
 
 
