@@ -831,16 +831,395 @@ model = nn.Sequential(OrderedDict([
 
 
 
+    # Set Loss function(criterion)
+ - Loss function은 모델이 추측한 결과(prediction 또는 output)과 실제 정답(label 또는 y 등)의 loss를 계산한다.
+   이는 loss function을 어떤 것을 쓰느냐에 따라 달라진다. 예를 들어 regression model에서 MSE(Mean Squared Error)를 쓸 경우 평균 제곱오차를 계산한다.
+   사용법은 다른 함수들도 아래와 똑같다.
+ - 여러 코드들을 살펴보면, loss function을 정의할 때는 보통 criterion, loss_fn, loss_function등의 이름을 사용하니 참고하자.
+
+    # loss function Ex - 1
+criterion  = nn.MSELoss()
+prediction = torch.Tensor([12, 21, 30, 41, 52]) # 예측값
+target     = torch.Tensor([10, 20, 30, 40, 50]) # 정답
+loss       = criterion(prediction, target)
+print(loss)
+# tensor(2.)
+# loss = (2^2 + 1^2 + 0^2 + 1^2 + 2^2) / 5 = 2
+
+    # loss function Ex - 2
+criterion_reduction_none = nn.MSELoss(reduction='none')
+loss = criterion_reduction_none(prediction, target)
+print(loss)
+# tensor([4., 1., 0., 1., 4.])
+
+
+    # PyTorch Loss function의 종류
+º nn.L1Loss: 각 원소별 차이의 절댓값을 계산한다.L1
+º nn.MSELoss: Mean Squared Error(평균제곱오차) 또는 squared L2 norm을 계산한다.MSE
+º nn.CrossEntropyLoss: Cross Entropy Loss를 계산한다. nn.LogSoftmax() and nn.NLLLoss()를 포함한다. weight argument를 지정할 수 있다.CE
+º nn.CTCLoss: Connectionist Temporal Classification loss를 계산한다.
+º nn.NLLLoss: Negative log likelihood loss를 계산한다.NLL
+º nn.PoissonNLLLoss: target이 poission 분포를 가진 경우 Negative log likelihood loss를 계산한다.PNLL
+º nn.KLDivLoss: Kullback-Leibler divergence Loss를 계산한다.KLDiv
+º nn.BCELoss: Binary Cross Entropy를 계산한다.BCE
+º nn.BCEWithLogitsLoss: Sigmoid 레이어와 BCELoss를 하나로 합친 것인데, 홈페이지의 설명에 따르면 두 개를 따로 쓰는 것보다 이 함수를 쓰는 것이 조금 더 수치 안정성을 가진다고 한다.
+   BCE이외에 MarginRankingLoss, HingeEmbeddingLoss, MultiLabelMarginLoss, SmoothL1Loss, SoftMarginLoss, MultiLabelSoftMarginLoss, CosineEmbeddingLoss, MultiMarginLoss, TripletMarginLoss를 계산하는 함수들이 있다. 필요하면 찾아보자.
+# 본문: https://greeksharifa.github.io/pytorch/2018/11/10/pytorch-usage-03-How-to-Use-PyTorch/
+# 참조: https://pytorch.org/docs/stable/nn.html#loss-functions
+
+
+    # softmax
+ - 신경망의 결괏값을 확률로 바꿔줘야 하는데 이때 사용하는 방법이 소프트맥스 함수입니다.
+   softmax(yi) = exp(yi) / ∑jexp(yj)
+   결괏값 벡터에 있는 값들이 지수 함수를 통과하면 모든 값은 양수가 됩니다.
+   결괏값은 지수 함수를 거쳐 변환되고 전체 합 중 각각의 비중이 소프트맥스 함수의 결과가 됩니다.
+
+ - 교차 엔트로피는 목표로 하는 최적의 확률분포 p와 이를 근사하려는 확률분포 q가 얼마나 다른지를 측정하는 방법입니다.
+   즉 교차 엔트로피는 원래 p였던 분포를 q로 표현했을 때 얼마만큼의 비용이 드는지를 측정한다고 할 수 있습니다.
+
+ - 교차 엔트로피 값은 예측이 잘못될수록 L1 손실보다 더 크게 증가하는 것을 확인할 수 있습니다.
+   그만큼 더 페널티가 크고 손실 값이 크기 때문에 학습 면에서도 교차 엔트로피 손실을 사용하는 것이 장점이 있다는 뜻입니다.
+   따라서 분류 문제에서는 교차 엔트로피 손실을 많이 사용합니다.
 
 
 
 
+    # torchvision.models의 모델을 사용하는 방법
+# torchvision.models에서는 미리 정의되어 있는 모델들을 사용할 수 있다.
+# torchvision.models 참조: https://pytorch.org/docs/stable/torchvision/models.html
+ - 이 모델들은 그 구조뿐 아니라 pretrained=True 인자를 넘김으로써 pretrained weights를 가져올 수도 있다.
+    º AlexNet
+    º VGG-11, VGG-13, VGG-16, VGG-19
+    º VGG-11, VGG-13, VGG-16, VGG-19 (with batch normalization)
+    º ResNet-18, ResNet-34, ResNet-50, ResNet-101, ResNet-152
+    º SqueezeNet 1.0, SqueezeNet 1.1
+    º Densenet-121, Densenet-169, Densenet-201, Densenet-161
+    º Inception v3
+
+ - 모델에 따라 train mode와 eval mode가 정해진 경우가 있으므로 이는 주의해서 사용하도록 한다.
+   모든 pretrained model을 쓸 때 이미지 데이터는 [3, W, H] 형식이어야 하고, W, H는 224 이상이어야 한다.
+   또 아래 코드처럼 정규화된 이미지 데이터로 학습된 것이기 때문에, 이 모델들을 사용할 때에는 데이터셋을 이와 같이 정규화시켜주어야 한다.
+   transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+   사용법은 대략 다음과 같다. 사실 이게 거의 끝이고, 나머지는 다른 일반 모델처럼 사용하면 된다.
+
+# torchvision.models - Ex 1
+import torchvision.models as models
+# model load
+alexnet = models.alexnet()
+vgg16 = models.vgg16()
+vgg16_bn = models.vgg16_bn()
+resnet18 = models.resnet18()
+squeezenet = models.squeezenet1_0()
+densenet = models.densenet161()
+inception = models.inception_v3()
+
+# pretrained model load
+resnet18 = models.resnet18(pretrained=True)
+vgg16 = models.vgg16(pretrained=True)
+...
+
+
+
+
+    # Train Model
+ - Pytorch의 학습 방법은 다음과 같다.
+  1. model structure, loss function, optimizer 등을 정한다.
+  2. optimizer.zero_grad(): 이전 epoch에서 계산되어 있는 parameter의 gradient를 0으로 초기화한다.
+  3. output = model(input): input을 모델에 통과시켜 output을 계산한다.
+  4. loss = loss_fn(output, target): output과 target 간 loss를 계산한다.
+  5. loss.backward(): loss와 chain rule을 활용하여 모델의 각 레이어에서 gradient(Δw)를 계산한다.
+  6. optimizer.step(): w←w−αΔw 식에 의해 모델의 parameter를 update한다.
+
+    # 간단한 학습 과정은 다음 구조를 따른다.
+# 변수명으로 input을 사용하는 것은 비추천. python 내장 함수 이름이다.
+for data, target in datalodaer:
+    optimizer.zero_grad(): # RNN에서는 생략될 수 있음
+    output = model(data)
+    loss = loss_fn(output, target)
+    loss.backward()
+    optimizer.step()
+
+optimizer.zero_grad():
+ - Pytorch는 gradient를 loss.backward()를 통해 계산하지만,
+   이 함수는 이전 gradient를 덮어쓴 뒤 새로 계산하는 것이 아니라, 이전 gradient에 누적하여 계산한다.
+   귀찮은데? 라고 생각할 수는 있다. 그러나 이러한 누적 계산 방식은 RNN 모델을 구현할 때는 오히려 훨씬 편하게 코드를 작성할 수 있도록 도와준다.
+   그러니 gradient가 누적될 필요 없는 모델에서는 model에 input를 통과시키기 전 optimizer.zero_grad()를 한번 호출해 주기만 하면 된다고 생각하면 끝이다.
+ - Pytorch가 대체 어떻게 loss.backward() 단 한번에 gradient를 자동 계산하는지에 대한 설명하면,
+   모든 Pytorch Tensor는 requires_grad argument를 가진다. 일반적으로 생성하는 Tensor는 기본적으로 해당 argument 값이 False이며,
+   따로 True로 설정해 주면 gradient를 계산해 주어야 한다. nn.Linear 등의 module은 생성할 때 기본적으로 requires_grad=True이기 때문에,
+   일반적으로 모델의 parameter는 gradient를 계산하게 된다.
+ - 마지막 레이어만 원하는 것으로 바꿔서 그 레이어만 학습을 수행하는 형태의 transfer learning을 requires_grad를 이용해 손쉽게 구현할 수 있다.
+   이외에도 특정 레이어만 gradient를 계산하지 않게 하는 데에도 쓸 수 있다.
+   아래 예시는 512개의 class 대신 100개의 class를 구별하고자 할 때 resnet18을 기반으로 transfer learning을 수행하는 방식이다.
+model = torchvision.models.resnet18(pretrained=True)
+for param in model.parameters():
+    param.requires_grad = False
+# Replace the last fully-connected layer
+# Parameters of newly constructed modules have requires_grad=True by default
+model.fc = nn.Linear(512, 100)
+# Optimize only the classifier
+optimizer = optim.SGD(model.fc.parameters(), lr=1e-2, momentum=0.9)
+ º requires_grad=True인 Tensor로부터 연산을 통해 생성된 Tensor도 requires_grad=True이다.
+
+
+
+    # 하이퍼파라미터 설명
+BATCH_SIZE: 모델에서 파라미터를 업데이트할 때 계산되는 데이터의 개수,
+            수만큼 출력된 결괏값에 대한 오찻값을 계산,
+            계산된 오찻값을 평균하여 Back Propagation을 적용, 이를 바탕으로 파라미터 업데이트
+INPUT_SIZE: Input의 크기이자
+            입력층의 노드 수를 의미
+HIDDEN_SIZE: Input을 다수의 파라미터를 이용해 계산한 결과에 한번 더 계산되는 파라미터 수,
+             은닉층의 노드 수를 의미
+OUTPUT_SIZE: 최종으로 출력되는 값의 벡터의 크기를 의미,
+             보통 Output의 크기는 최종으로 비교하고자 하는 레이블의 크기와 동일하게 설정
+
+    # 파라미터 설명 - Ex 1
+ - if you have 1000 trainning examples, and your batch size is 500,
+   then it will take 2 iterations to complete 1 epoch.
+
+
+
+
+    # train 설계 - Ex 1: Linear Regression
+# 데이터
+x_train = torch.FloatTensor([[1], [2], [3]])
+y_train = torch.FloatTensor([[1], [2], [3]])
+# 모델 초기화
+W = torch.zeros(1, requires_grad=True)
+# optimizer 설정
+optimizer = optim.SGD([W], lr=0.15)
+
+nb_epochs = 10
+for epoch in range(nb_epochs + 1):
+    # H(x) 계산
+    hypothesis = x_train * W
+    # cost 계산
+    cost = torch.mean((hypothesis - y_train) ** 2)
+    # cost로 H(x) 개선
+    optimizer.zero_grad()
+    cost.backward()
+    optimizer.step()
+    print(f'Epoch {epoch}/{nb_epochs} W: {W.item():.4f}, Cost: {cost.item():.4f}')
+
+
+    # train 설계 - Ex 2: Multivariable Linear regression
+# 1. 데이터 정의
+x_train = torch.FloatTensor([[73, 80, 75],
+                            [93, 88, 93],
+                            [89, 91, 90],
+                            [96, 98, 100],
+                            [73, 66, 70]])
+y_train = torch.FloatTensor([[152], [185], [180], [196], [142]])
+# 2. 모델 정의
+W = torch.zeros((3, 1), requires_grad=True)
+b = torch.zeros(1, requires_grad=True)
+# 3. optimizer 설정
+optimizer = optim.SGD([W, b], lr=1e-5)
+
+nb_epochs = 20
+for epoch in range(nb_epochs + 1):
+    # 4. Hypothesis 계산
+    hypothesis = x_train.matmul(W) + b # or .mm or @
+    # 5. Cost 계산 (MSE)
+    cost = torch.mean((hypothesis - y_train) ** 2)
+    # 6. Gradient descent: cost로 H(x) 개선
+    optimizer.zero_grad()
+    cost.backward()
+    optimizer.step()
+    print(f'Epoch {epoch:4d}/{nb_epochs} hypothesis: {hypothesis.squeeze().detach()} Cost: {cost.item()}')
+
+
+    # train 설계 - Ex 3: nn.Module을 상속하여 모델을 생성
+class MultivariateLinearRegressionModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.linear = nn.Linear(3, 1)
+
+    def forward(self, x):
+        return self.linear(x)
+
+# 1. 데이터 정의
+x_train = torch.FloatTensor([[73, 80, 75],
+                            [93, 88, 93],
+                            [89, 91, 90],
+                            [96, 98, 100],
+                            [73, 66, 70]])
+y_train = torch.FloatTensor([[152], [185], [180], [196], [142]])
+# 2. 모델 정의
+# W = torch.zeros((3, 1), requires_grad=True)
+# b = torch.zeros(1, requires_grad=True)
+model = MultivariateLinearRegressionModel()
+# 3. optimizer 설정
+optimizer = optim.SGD(model.parameters(), lr=1e-5)
+
+nb_epochs = 20
+for epoch in range(nb_epochs + 1):
+    # 4. Hypothesis 계산
+    #hypothesis = x_train.matmul(W) + b # or .mm or @
+    prediction = model(x_train)
+    # 5. Cost 계산 (MSE)
+    #cost = torch.mean((hypothesis - y_train) ** 2)
+    cost = F.mse_loss(prediction, y_train)
+    # 6. Gradient descent: cost로 H(x) 개선
+    optimizer.zero_grad()
+    cost.backward()
+    optimizer.step()
+    print(f'Epoch {epoch:4d}/{nb_epochs} Cost: {cost.item()}')
+
+
+    # train 설계 - Ex 4: Logistic regression
+# 모델 초기화
+W = torch.zeros((2, 1), requires_grad=True)
+b = torch.zeros(1, requires_grad=True)
+# optimizer 설정
+optimizer = optim.SGD([W, b], lr=1)
+
+nb_epochs = 1000
+for epoch in range(nb_epochs + 1):
+    # Cost 계산
+    hypothesis = torch.sigmoid(x_train.matmul(W) + b) # or .mm or @
+    cost = F.binary_cross_entropy(hypothesis, y_train)
+    # cost로 H(x) 계산
+    optimizer.zero_grad()
+    cost.backward()
+    optimizer.step()
+    # 100번마다 로그 출력
+    if epoch % 100 == 0:
+        print(f'Epoch {epoch:4d}/{nb_epochs} Cost: {cost.item():.6f}')
+
+
+    # train 설계 - Ex 5: Logistic regression nn.Module를 상속하여 클래스 생성
+class BinaryClassifier(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.linear = nn.Linear(2, 1)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        return self.sigmoid(self.linear(x))
+
+model = BinaryClassifier()
+
+# optimizer 설정
+optimizer = optim.SGD(model.parameters(), lr=1)
+
+nb_epochs = 100
+for epoch in range(nb_epochs + 1):
+    # H(x) 계산
+    hypothesis = model(x_train)
+    # cost 계산
+    cost = F.binary_cross_entropy(hypothesis, y_train)
+    # cost로 H(x) 계산
+    optimizer.zero_grad()
+    cost.backward()
+    optimizer.step()
+    # 20번마다 로그 출력
+    if epoch % 10 == 0:
+        prediction = hypothesis >= torch.FloatTensor([0.5])
+        correct_prediction = prediction.float() == y_train
+        accuracy = correct_prediction.sum().item() / len(correct_prediction)
+        print(f'Epoch {epoch:4d}/{nb_epochs} Cost: {cost.item():.6f} Accuracy {accuracy * 100:2.2f}')
+
+
+
+    # train 설계 - Ex 6, 7: CrossEntropy로 계산
+# 모델 초기화
+W = torch.zeros((4, 3), requires_grad=True)
+b = torch.zeros(1, requires_grad=True)
+# optimizer 설정
+optimizer = optim.SGD([W, b], lr=0.1)
+
+nb_epochs = 1000
+for epoch in range(nb_epochs + 1):
+    # Cost 계산
+    z = x_train.matmul(W) + b # or .mm or @
+    cost = F.cross_entropy(z, y_train)
+    # Cost로 H(x) 개선
+    optimizer.zero_grad()
+    cost.backward()
+    optimizer.step()
+    # 100번 마다 로그 출력
+    if epoch % 100 == 0:
+        print(f'Epoch {epoch:4d}/{nb_epochs} Cost: {cost.item():.6f}')
+
+## nn.Module를 상속하여 클래스 생성
+class SoftmaxClassifierModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.linear = nn.Linear(4, 3) # Output이 3 !
+    def forward(self, x):
+        return self.linear(x)
+
+model = SoftmaxClassifierModel()
+
+# optimizer 설정
+optimizer = optim.SGD(model.parameters(), lr=0.1)
+
+nb_epochs = 1000
+for epoch in range(nb_epochs + 1):
+    # H(x) 계산
+    prediction = model(x_train)
+    # Cost 계산
+    cost = F.cross_entropy(prediction, y_train)
+    # Cost로 H(x) 개선
+    optimizer.zero_grad()
+    cost.backward()
+    optimizer.step()
+    # 100번 마다 로그 출력
+    if epoch % 100 == 0:
+        print(f'Epoch {epoch:4d}/{nb_epochs} Cost: {cost.item():.6f}')
+
+
+
+    # train 설계 - Ex 8: train, test 함수화
+# define train
+def train(model, optimizer, x_train, y_train):
+    nb_epochs = 30
+    for epoch in range(nb_epochs):
+        # H(x) 계산
+        prediction = model(x_train)
+        # cost 계산
+        cost = F.cross_entropy(prediction, y_train)
+        # cost = F.mse_loss(prediction, y_train)
+        # cost로 H(x) 개선
+        optimizer.zero_grad()
+        cost.backward()
+        optimizer.step()
+        print(f'Epoch {epoch:4d}/{nb_epochs} Cost {cost.item():.6f}')
+
+train(model, optimizer, x_train, y_train)
+
+# define test
+def test(model, optimizer, x_test, y_test):
+    prediction = model(x_test)
+    predicted_classes = prediction.max(1)[1]
+    correct_count = (predicted_classes == y_test).sum().item()
+    cost = F.cross_entropy(prediction, y_test)
+    print(f'Accuracy: {correct_count/len(y_test) * 100}% Cost: {cost.item():.6f}')
+
+test(model, optimizer, x_test, y_test)
+
+
+
+
+    # with torch.no_grad()
+ - with torch.no_grad(): 범위 안에서는 gradient 계산을 하지 않는다.
+   with torch.no_grad() 안에서 선언된 with torch.enable_grad():
+   범위 안에서는 다시 gradient 계산을 한다.
+   이 두 가지 기능을 통해 국지적으로 gradient 계산을 수행하거나 수행하지 않을 수 있다.
 
 
 
 
 
 ---------- DNN ----------
+
+
+
+
+
+
 
 
 
@@ -1036,9 +1415,9 @@ class CNN(nn.Module):
         out = self.fc_layer(out)
         return out
 
-    
-    
-    
+
+
+
     # VGG Ex - 1
 class VGG(nn.Modules):
     def __init__(self, features, num_classes=1000, init_weights=True):
@@ -1054,14 +1433,14 @@ class VGG(nn.Modules):
        )
        if init_weights:
            self.initialize_weights()
-            
+
    def forward(self, x):
        x = self.features(x)
        x = self.avgpool(x)
        x = x.view(x.size(0), -1)
        x = self.classifier(x)
        return x
-    
+
    def _initialize_weights(self):
        for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -1074,7 +1453,7 @@ class VGG(nn.Modules):
                 elif isinstance(m, nn.Linear):
                     nn.init.normal_(m.weight, 0, 0.01)
                     nn.init.constant_(m.bias, 0)
-                    
+
    def make_layers(cfg, batch_norm=False):
       layers = []
       in_channels = 3
@@ -1098,21 +1477,21 @@ class VGG(nn.Modules):
        'D': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
        'E': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M'],
     }
-        
-                 
-                 
-                 
-                 
-                 
-                    
-                    
-                    
-                    
-                 
-                 
-                 
-                 
-                 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ---------- RNN ----------
 
 
@@ -1523,6 +1902,16 @@ for i in range(num_epoch):
    어떤 변수는 손실 최소 지점을 중심에 두고 왔다 갔다 할 것입니다. 이에 비해 정규화된 데이터는 변수들의 범위가 일정하기 때문에
    비교적 높은 학습률을 적용시킬 수 있고 따라서 최소 지점에 더 빠르게 도달할 수 있게 됩니다.
 
+    # 어떤 경우에 데이터를 정규분포화 하는가? 왜 하는가?
+ y_train = (m, 2)라 하자.
+ [1000, 0.1]   이때 뉴럴네트워크는 0.1쪽들의 값들은 작아서
+ [999,  0.2],  앞의 값에 더욱 치중해서 계산하라 것이다. 정규분포화 하여
+ [1010, -0.3]  둘다 비슷한 값들도 만들어서 피처의 중요성을 동등하게 만들어준다 !!
+mu = x_train.mean(dim=0)
+sigma = x_train.std(dim=0)
+norm_x_train = (x_train - mu) / sigma
+print(norm_x_train)
+
     # Normalization - Ex 1
 # 정규화는 transform을 통해 가능합니다.
 # 여기서 mean, std는 미리 계산된 값입니다.
@@ -1836,9 +2225,7 @@ Nadam: Adam에 Momemtum 대신 NAG를 붙이자.
 
 * 데이터셋
 * Pytorch Layer의 종류
-* Pytorch Activation function의 종류
-
-
+* MNIST Dataset
 
 
     # torchvision.datasets
@@ -1904,6 +2291,56 @@ STL10, SVHN, PhotoTour, SBU
 
 
 
+    # MNIST Dataset Example
+# Load MNIST data
+mnist_train = dsets.MNIST(root="MNIST_data/", train=True,
+                         transform=transforms.ToTensor(),
+                         download=True)
+mnist_test = dsets.MNIST(root="MNIST_data/", train=False,
+                         transform=transforms.ToTensor(),
+                         download=True)
+# dataset loader
+data_loader = torch.utils.data.DataLoader(dataset=mnist_train,
+                                     batch_size=batch_size,
+                                     shuffle=True,
+                                     drop_last=True) # batch_size에 안맞게 마지막에 남은 것: 사용할지 않할지, True시 드랍하여 사용안함.)
+# MNIST data image of shape 28 * 28 = 784
+linear = nn.Linear(784, 10, bias=True).to(device)
+# define cost/Loss & optimizer
+criterion = nn.CrossEntropyLoss().to(device) # Softmax is internally computed
+optimizer = torch.optim.SGD(linear.parameters(), lr=0.1)
+
+for epoch in range(training_epochs):
+    avg_cost = 0
+    total_batch = len(data_loader)
+    for X, Y in data_loader:
+        # reshape input image into [batch_size by 784]
+        # Label is not one-hot encoded
+        X = X.view(-1, 28 * 28).to(device)
+        Y = Y.to(device)
+
+        optimizer.zero_grad()
+        hypothesis = linear(X)
+        cost = criterion(hypothesis, Y)
+
+        cost.backward()
+        optimizer.step()
+        avg_cost += cost / total_batch
+
+    print(f'Epoch: {epoch+1:4d}, cost ={avg_cost:.9f}')
+print('Learning finished')
+
+
+# Test the model using test sets
+with torch.no_grad(): # 해당 범위코드내에서는 grad를 계산하지 않겠다.
+    X_test = mnist_test.test_data.view(-1, 28 * 28).float().to(device)
+    Y_test = mnist_test.test_labels.to(device)
+
+    prediction = linear(X_test)
+    correct_prediction = torch.argmax(prediction, 1) == Y_test
+    accuracy = correct_prediction.float().mean()
+    print(f'Accuracy: {accuracy.item()}')
+# 정리 잘 되어 있는 블로그 : https://wingnim.tistory.com/34
 
 
 
