@@ -6,6 +6,8 @@
 * DNN
 * CNN
 * RNN
+* AE
+* GAN
 * Import codes
 * 딥러닝의 발전을 이끈 알고리즘들
 * 공부하며 떠오른 것들
@@ -963,24 +965,6 @@ optimizer = optim.SGD(model.fc.parameters(), lr=1e-2, momentum=0.9)
 
 
 
-    # 하이퍼파라미터 설명
-BATCH_SIZE: 모델에서 파라미터를 업데이트할 때 계산되는 데이터의 개수,
-            수만큼 출력된 결괏값에 대한 오찻값을 계산,
-            계산된 오찻값을 평균하여 Back Propagation을 적용, 이를 바탕으로 파라미터 업데이트
-INPUT_SIZE: Input의 크기이자
-            입력층의 노드 수를 의미
-HIDDEN_SIZE: Input을 다수의 파라미터를 이용해 계산한 결과에 한번 더 계산되는 파라미터 수,
-             은닉층의 노드 수를 의미
-OUTPUT_SIZE: 최종으로 출력되는 값의 벡터의 크기를 의미,
-             보통 Output의 크기는 최종으로 비교하고자 하는 레이블의 크기와 동일하게 설정
-
-    # 파라미터 설명 - Ex 1
- - if you have 1000 trainning examples, and your batch size is 500,
-   then it will take 2 iterations to complete 1 epoch.
-
-
-
-
     # train 설계 - Ex 1: Linear Regression
 # 데이터
 x_train = torch.FloatTensor([[1], [2], [3]])
@@ -1211,13 +1195,68 @@ test(model, optimizer, x_test, y_test)
 
 
 
+    # 딥러닝 모델을 설계할 때 활용하는 장비 확인
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+print(f'Using Pytorch version: {torch.__version__}, Device: {DEVICE}')
+
+
+
+    # 하이퍼파라미터 설명
+BATCH_SIZE: 모델에서 파라미터를 업데이트할 때 계산되는 데이터의 개수,
+            수만큼 출력된 결괏값에 대한 오찻값을 계산,
+            계산된 오찻값을 평균하여 Back Propagation을 적용, 이를 바탕으로 파라미터 업데이트
+INPUT_SIZE: Input의 크기이자
+            입력층의 노드 수를 의미
+HIDDEN_SIZE: Input을 다수의 파라미터를 이용해 계산한 결과에 한번 더 계산되는 파라미터 수,
+             은닉층의 노드 수를 의미
+OUTPUT_SIZE: 최종으로 출력되는 값의 벡터의 크기를 의미,
+             보통 Output의 크기는 최종으로 비교하고자 하는 레이블의 크기와 동일하게 설정
+
+    # 파라미터 설명 - Ex 1
+ - if you have 1000 trainning examples, and your batch size is 500,
+   then it will take 2 iterations to complete 1 epoch.
+
+
 
 
 ---------- DNN ----------
 
 
+    # DNN Ex - 1
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(32 * 32 * 3, 512)
+        self.fc2 = nn.Linear(512, 256)
+        self.fc3 = nn.Linear(256, 10)
+
+    def forward(self, x):
+        x = x.view(-1, 32 * 32 * 3)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
 
 
+    # DNN Ex - 2
+class NNModel(torch.nn.Module):
+
+    def __init__(self):
+        super(NNModel,self).__init__()
+        self.l1 = nn.Linear(784,520)
+        self.l2 = nn.Linear(520,320)
+        self.l3 = nn.Linear(320,240)
+        self.l4 = nn.Linear(240,120)
+        self.l5 = nn.Linear(120,10)
+
+    def forward(self, x):
+        # input data : ( n , 1 , 28 , 28 )
+        x = x.view(-1,784) # Flatten : ( n , 784 )
+        x = F.relu(self.l1(x))
+        x = F.relu(self.l2(x))
+        x = F.relu(self.l3(x))
+        x = F.relu(self.l4(x))
+        return self.l5(x)
 
 
 
@@ -1382,10 +1421,48 @@ mnist_test = dset.MNIST("./", train=False, transform=transforms.ToTensor(), targ
 
 
 
+    # 데이터 확인하기 (1). 구조
+for (X_train, y_train) in train_loader:
+    print(f'X_train: {X_train.size()}, type: {X_train.type()}')
+    print(f'y_train: {y_train.size()}, type: {y_train.type()}')
+    break
+
+for i in range(3):
+    img= mnist_train[i][0].numpy()
+    plt.imshow(img[0],cmap='gray')
+    plt.show()
+
+print('train:', train_loader.dataset.data.shape)
+print('test:', test_loader.dataset.data.shape)
+
+    # 데이터 확인하기 (2). 그림
+pltsize = 1
+plt.figure(figsize=(10 * pltsize, pltsize))
+for i in range(10):
+    plt.subplot(1, 10, i+1) # 1 by 10의 행렬에다가 그림을 순서대로 그릴것, i+1은 그 중 어느 열인지를 나타냄.
+    plt.axis('off')
+    plt.imshow(X_train[i, :, :, :].numpy().reshape(28, 28), cmap='gray_r')
+    # plt.imshow(np.transpose(X_train[i], (1, 2, 0)))
+    plt.title(f'Class: {str(y_train[i].item())}')
+
+
+    # 데이터 확인하기 (2) - Ex 1. VGG 만들때 사용하였던 것
+np.random.seed(42)
+random_train_pictures = [np.random.randint(1, 50000) for i in range(10)]
+
+plt.figure(figsize=(20, 2))
+for i in range(len(random_train_pictures)):
+    plt.subplot(1, 10, i+1)
+    plt.imshow(train_loader.dataset.data[random_train_pictures[i]])
+    plt.axis('off')
+    plt.title(f'Class: {str(train_loader.dataset.targets[random_train_pictures[i]])}')
 
 
 
-    # 기본 CNN Ex - 1
+
+
+
+    # CNN Ex - 1
 class CNN(nn.Module):
     def __init__(self):
         super(CNN,self).__init__()
@@ -1416,6 +1493,275 @@ class CNN(nn.Module):
         return out
 
 
+    # CNN Ex - 2
+class CNN(nn.Module):
+    def __init__(self):
+        super(CNN, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels = 3, out_channels = 8, kernel_size = 3, padding = 1)
+        self.conv2 = nn.Conv2d(in_channels = 8, out_channels = 16, kernel_size = 3, padding = 1)
+        self.maxpool = nn.MaxPool2d(kernel_size = 2, stride = 2)
+        self.fc1 = nn.Linear(8 * 8 * 16, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 10)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        x = self.maxpool(x)
+        x = F.relu(self.conv2(x))
+        x = self.maxpool(x)
+
+        x = x.view(-1, 8 * 8 * 16)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+
+    # CNN Ex - 3
+class CNN(nn.Module):
+    def __init__(self):
+        super(CNN, self).__init__()
+        self.layer1 = nn.Sequential(
+            nn.Conv2d(3, 6, kernel_size=5),
+            nn.ReLU(),
+            nn.MaxPool2d(2)
+        )
+        self.layer2 = nn.Sequential(
+            nn.Conv2d(6, 16, kernel_size=5),
+            nn.ReLU(),
+            nn.MaxPool2d(2)
+        )
+        self.layer3 = nn.Sequential(
+            nn.Linear(16 * 5 * 5, 120),
+            nn.ReLU(),
+            nn.Linear(120, 10)
+        )
+
+    def forward(self, x):
+        out = self.layer1(x)
+        print(out.shape)
+        out = self.layer2(out)
+        print(out.shape)
+        out = out.view(out.shape[0], -1)
+        print(out.shape)
+        out = self.layer3(out)
+        return out
+
+
+    # CNN Ex - 4
+class CNN(nn.Module):
+    def __init__(self):
+        super(CNN, self).__init__()
+
+        self.layer_1 = nn.Sequential(
+            nn.Conv2d(3, 16, kernel_size=3, padding=0, stride=2), # 224 -> 111
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.MaxPool2d(2) # 111 -> 55
+        )
+        self.layer_2 = nn.Sequential(
+            nn.Conv2d(16, 32, kernel_size=3, padding=0, stride=2), # 55 -> 27
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.MaxPool2d(2) # 27 -> 13
+        )
+        self.layer_3 = nn.Sequential(
+            nn.Conv2d(32, 64, kernel_size=3, padding=0, stride=2), # 13 -> 6
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(2) # 6 -> 3
+        )
+        self.fc1 = nn.Linear(64 * 3 * 3, 10)
+        self.dropout = nn.Dropout(0.5)
+        self.fc2 = nn.Linear(10, 2)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        out = self.layer_1(x) # (32, 16, 55, 55)
+        out = self.layer_2(out) # (32, 13, 13)
+        out = self.layer_3(out) # -> (32, 64, 3, 3)
+        out = out.view(batch_size, -1) # -> (32, 576)
+                                        # -> (32, 64)
+        out = self.relu(self.fc1(out)) # (576, 10)
+        out = self.fc2(out) # (10, 2)
+        return out
+
+
+    # CNN Ex - 5
+class CNN(nn.Module):
+
+    def __init__(self):
+        super(CNN, self).__init__()
+        self.keep_prob = 0.5
+        self.layer1 = nn.Sequential(
+            nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2)
+        )
+        self.layer2 = nn.Sequential(
+            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2)
+        )
+        self.layer3 = nn.Sequential(
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2)
+        )
+        self.fc1 = nn.Linear(3 * 3 * 128, 625)
+        torch.nn.init.xavier_uniform_(self.fc1.weight)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(p = 1- self.keep_prob)
+        self.fc2 = nn.Linear(625, 10, bias=True)
+        torch.nn.init.xavier_uniform_(self.fc2.weight)
+
+    def forward(self, x):
+        out = self.layer1(x)
+        out = self.layer2(out)
+        out = self.layer3(out)
+
+        out = out.view(out.size(0), -1)
+        out = self.fc1(out)
+        out = self.relu(out)
+        out = self.fc2(out)
+        return out
+
+
+    # CNN Ex - 6
+class CNN(nn.Module):
+    def __init__(self):
+        super(CNN,self).__init__()
+        self.layer = nn.Sequential(
+            nn.Conv2d(1,16,3,padding=1),  # 28
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            #nn.Dropout2d(0.2), # 오버피팅하지 않는 상태에서 정형화나 드롭아웃을 넣으면 오히려 학습이 잘 안됨.
+            nn.Conv2d(16,32,3,padding=1), # 28
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            #nn.Dropout2d(0.2),
+            nn.MaxPool2d(2,2),            # 14
+            nn.Conv2d(32,64,3,padding=1), # 14
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            #nn.Dropout2d(0.2),
+            nn.MaxPool2d(2,2)             # 7
+        )
+        self.fc_layer = nn.Sequential(
+            nn.Linear(64*7*7,100),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(100,10)
+        )
+
+        # 초기화 하는 방법
+        # 모델의 모듈을 차례대로 불러옵니다.
+        for m in self.modules():
+            # 만약 그 모듈이 nn.Conv2d인 경우
+            if isinstance(m, nn.Conv2d):
+
+                # 작은 숫자로 초기화하는 방법
+            # 가중치를 평균 0, 편차 0.02로 초기화합니다.
+            # 편차를 0으로 초기화합니다.
+                m.weight.data.normal_(0.0, 0.02)
+                m.bias.data.fill_(0)
+
+                # Xavier Initialization
+            # 모듈의 가중치를 xavier normal로 초기화합니다.
+            # 편차를 0으로 초기화합니다.
+                init.xavier_normal(m.weight.data)
+                m.bias.data.fill_(0)
+
+                # Kaming Initialization
+            # 모듈의 가중치를 kaming he normal로 초기화합니다.
+            # 편차를 0으로 초기화합니다.
+                init.kaiming_normal_(m.weight.data)
+                m.bias.data.fill_(0)
+
+
+            # 만약 그 모듈이 nn.Linear인 경우
+            elif isinstance(m, nn.Linear):
+
+                # 작은 숫자로 초기화하는 방법
+                m.weight.data.normal_(0.0, 0.02)
+                m.bias.data.fill_(0)
+
+                # Xavier Initialization
+                init.xavier_normal(m.weight.data)
+                m.bias.data.fill_(0)
+
+                # Kaming Initialization
+                init.kaiming_normal_(m.weight.data)
+                m.bias.data.fill_(0)
+
+    def forward(self,x):
+        out = self.layer(x)
+        out = out.view(batch_size,-1)
+        out = self.fc_layer(out)
+        return out
+
+
+    # CNN Ex - 7
+class CNN(torch.nn.Module):
+  def __init__(self):
+    super(CNN, self).__init__()
+    self.conv_block1, self.shape = self.conv_block(224, 3, 8, 3, padding=1)
+    self.conv_block2, self.shape = self.conv_block(self.shape, 8, 16, 3, stride=2)
+    self.conv_block3, self.shape = self.conv_block(self.shape, 16, 16, 3, padding=1)
+    self.conv_block4, self.shape = self.conv_block(self.shape, 16, 32, 3, stride=2)
+    self.conv_block5, self.shape = self.conv_block(self.shape, 32, 32, 3, padding=1)
+    self.conv_block6, self.shape = self.conv_block(self.shape, 32, 64, 3, stride=2)
+    self.conv_block7, self.shape = self.conv_block(self.shape, 64, 64, 3, padding=1)
+    self.conv_block8, self.shape = self.conv_block(self.shape, 64, 128, 3, stride=2)
+
+    self.fc_block1 = self.fc_block(128 * self.shape**2, 256)
+    self.fc_block2 = self.fc_block(256, 128)
+    self.fc_block3 = self.fc_block(128, 32)
+
+    self.output = torch.nn.Linear(32, 1)
+
+  def conv_block(self, shape, in_, out_, kernel, stride= 1, padding=0):
+    block = torch.nn.Sequential(
+        torch.nn.Conv2d(in_, out_, kernel, stride=stride, padding=padding, bias=False),
+        torch.nn.BatchNorm2d(out_),
+        torch.nn.ReLU()
+    )
+
+    shape = int(np.floor((shape - kernel + 2*padding) / stride) + 1 )
+
+    return block, shape
+
+  def fc_block(self, in_, out_):
+    block = torch.nn.Sequential(
+        torch.nn.Linear(in_, out_, bias=False),
+        torch.nn.BatchNorm1d(out_),
+        torch.nn.ReLU()
+    )
+    return block
+
+
+  def forward(self, x):
+    # (1, 224, 224)
+    x = self.conv_block1(x)
+    x = self.conv_block2(x)
+    x = self.conv_block3(x)
+    x = self.conv_block4(x)
+    x = self.conv_block5(x)
+    x = self.conv_block6(x)
+    x = self.conv_block7(x)
+    x = self.conv_block8(x)
+
+    x = torch.flatten(x, 1)
+    # x = x.view(-1, 64 * self.shape**2)
+
+    x = self.fc_block1(x)
+    x = self.fc_block2(x)
+    x = self.fc_block3(x)
+
+    x = self.output(x)
+    x = torch.sigmoid(x)
+
+    return x
 
 
     # VGG Ex - 1
@@ -1525,6 +1871,21 @@ class VGG(nn.Modules):
 
 
 
+---------- AE ----------
+
+
+
+
+
+
+
+
+
+
+
+
+
+---------- GAN ----------
 
 
 
@@ -1536,6 +1897,17 @@ class VGG(nn.Modules):
 
 
 ---------- Import Codes ----------
+
+# Data Handling
+import numpy as np
+import pandas as pd
+import warnings; warnings.filterwarnings('ignore')
+
+
+# visualization
+import matplotlib.pyplot as plt
+%matplotlib inline
+
 
 # Torch
 import torch
@@ -2226,6 +2598,10 @@ Nadam: Adam에 Momemtum 대신 NAG를 붙이자.
 * 데이터셋
 * Pytorch Layer의 종류
 * MNIST Dataset
+* CIFAR10 Dataset
+* CIFAR100 Dataset
+* FashionMNIST Dataset
+* Hymenoptera_data
 
 
     # torchvision.datasets
@@ -2291,19 +2667,13 @@ STL10, SVHN, PhotoTour, SBU
 
 
 
-    # MNIST Dataset Example
+    # MNIST Dataset Example - 1
 # Load MNIST data
-mnist_train = dsets.MNIST(root="MNIST_data/", train=True,
-                         transform=transforms.ToTensor(),
-                         download=True)
-mnist_test = dsets.MNIST(root="MNIST_data/", train=False,
-                         transform=transforms.ToTensor(),
-                         download=True)
+mnist_train = dsets.MNIST(root="MNIST_data/", train=True, transform=transforms.ToTensor(), download=True)
+mnist_test = dsets.MNIST(root="MNIST_data/", train=False, transform=transforms.ToTensor(), download=True)
 # dataset loader
-data_loader = torch.utils.data.DataLoader(dataset=mnist_train,
-                                     batch_size=batch_size,
-                                     shuffle=True,
-                                     drop_last=True) # batch_size에 안맞게 마지막에 남은 것: 사용할지 않할지, True시 드랍하여 사용안함.)
+data_loader = torch.utils.data.DataLoader(dataset=mnist_train, batch_size=batch_size, shuffle=True, drop_last=True) # batch_size에 안맞게 마지막에 남은 것: 사용할지 않할지, True시 드랍하여 사용안함.)
+
 # MNIST data image of shape 28 * 28 = 784
 linear = nn.Linear(784, 10, bias=True).to(device)
 # define cost/Loss & optimizer
@@ -2343,7 +2713,95 @@ with torch.no_grad(): # 해당 범위코드내에서는 grad를 계산하지 않
 # 정리 잘 되어 있는 블로그 : https://wingnim.tistory.com/34
 
 
+    # MNIST Dataset Example - 2
+train_dataset = datasets.MNIST(root='MNIST_data', train=True, download=True, transform=transforms.ToTensor())
+test_dataset = datasets.MNIST(root='MNIST_data', train=False, download=True, transform=transforms.ToTensor())
+train_loader = torch.utils.data.DataLoader(dataset = train_dataset, batch_size = BATCH_SIZE, shuffle = True)
+test_loader = torch.utils.data.DataLoader(dataset = test_dataset, batch_size = BATCH_SIZE, shuffle = False)
 
+
+
+    # CIFAR10 Dataset Example - 1
+# standardization
+standardization = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.4913, 0.4821, 0.4465], std = [0.2470, 0.2434, 0.2615])
+])
+train_dataset = datasets.CIFAR10(root = '../data/CIFAR_10', train = True, download = True, transform = transforms.ToTensor())
+test_dataset = datasets.CIFAR10(root = '../data/CIFAR_10', train = False, download = True, transform = transforms.ToTensor())
+train_loader = torch.utils.data.DataLoader(dataset = train_dataset, batch_size = BATCH_SIZE, shuffle = True)
+test_loader = torch.utils.data.DataLoader(dataset = test_dataset, batch_size = BATCH_SIZE, shuffle = False)
+
+    # CIFAR10 Dataset Example - 2
+train_dataset = datasets.CIFAR10(root = '../data/CIFAR_10', train = True, download = True,
+ 			      transform = transforms.Compose([
+                                          	transforms.RandomHorizontalFlip(),
+                                          	transforms.ToTensor(),
+                                          	transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+                                          ]))
+test_dataset = datasets.CIFAR10(root = '../data/CIFAR_10', train = False, download = True,
+                                      transform = transforms.Compose([
+                                          transforms.RandomHorizontalFlip(),
+                                          transforms.ToTensor(),
+                                          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+                                      ]))
+ - transforms.Compose(): 불러오는 이미지 데이터에 전처리 및 Augmentation을 다양하게 적용할 때 이용하는 메서드. Compose의 괄호 안에 있는 처리 과정을 거친 데이터를 불러오는 것을 의미
+ - transforms.RandomHorizontalFlip(): 50% 확률로 이미지를 좌우 반전하는 것을 의미
+ - transforms.Normalize(): ToTensor() 형태로 전환된 이미지에 대해 또 다른 정규화를 진행하는 것을 의미. 정규화를 진행할 때는 평균과 표준편차가 필요한데 red, greed, blue 순으로 평균을 '0.5'씩, 표준편차를 '0.5'씩 적용하는 것을 의미.
+
+
+
+
+    # CIFAR100 Dataset Example - 1
+# standardization
+standardization = transforms.Compose([
+    transforms.Resize(256), # 그냥 하면 구글넷 모델에 비해 사진의 크기가 작다는 오류가 발생
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.507, 0.487, 0.441], std=[0.267, 0.256, 0.276])
+])
+train_dataset = datasets.CIFAR100(root = '../data/CIFAR_100', train = True, download = True, transform = transforms.ToTensor())
+test_dataset = datasets.CIFAR100(root = '../data/CIFAR_100', train = False, download = True, transform = transforms.ToTensor())
+train_loader = torch.utils.data.DataLoader(dataset = train_dataset, batch_size = BATCH_SIZE, shuffle = True)
+test_loader = torch.utils.data.DataLoader(dataset = test_dataset, batch_size = BATCH_SIZE, shuffle = True)
+
+
+
+
+    # FashionMNIST Dataset Example - 1
+train_dataset = datasets.FashionMNIST(root = '../data/FashionMNIST', train = True, download = True, transform = transforms.ToTensor())
+test_dataset = datasets.FashionMNIST(root = '../data/FashionMNIST', train = False, download = True, transform = transforms.ToTensor())
+train_loader = torch.utils.data.DataLoader(dataset = train_dataset, batch_size = BATCH_SIZE, shuffle = True)
+test_loader = torch.utils.data.DataLoader(dataset = test_dataset, batch_size = BATCH_SIZE, shuffle = True)
+
+
+
+    # Hymenoptera_data
+data_transforms = {
+    'train': transforms.Compose([
+        transforms.RandomResizedCrop(224),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+    ]),
+    'val': transforms.Compose([
+        transforms.CenterCrop(224), # 이미지의 중앙 부분을 크롭하여 [size, size] 크기로 만든다
+        transforms.Resize(256), # 이미지를 지정한 크기로 변환한다. 직사각형으로 자를 수 있다.
+        transforms.ToTensor(),
+        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+    ])
+}
+# ImageFolder라는 함수를 이용해 따로 이미지-라벨 쌍을 만들지 않고 폴더에 저장하는것만으로 쉽게 이미지-라벨 쌍을 만들 수 있습니다
+ex)
+root/dog/xxx.png
+root/dog/xxy.png
+root/cat/123.png
+root/cat/nsdf3.png
+
+image_datasets = {x: datasets.ImageFolder(f'data/hymenoptera_data/{x}', data_transforms[x]) for x in ['train', 'val']}
+# 이미지 데이터를 불러오는 것을 의미합니다.
+#'../data/hymenoptera_data' 위치에 접근해 train 폴더와 val폴더에 접근해 데이터를 불러옵니다.
+# 해당 코드는 dictionary comprehension을 사용한 것.
+dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size, num_workers=0, shuffle=True) for x in ['train', 'val']}
 
 
 
