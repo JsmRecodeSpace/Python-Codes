@@ -1335,6 +1335,58 @@ for epoch in range(num_epoch):
 print('Finished Training')
 
 
+    # DNN train - Ex 2
+def train(epoch):
+    model.train()
+    for batch_idx,(data,target) in enumerate(train_loader):
+
+        data = data.to(device)
+        target = target.to(device)
+
+        output = model(data)
+
+        optimizer.zero_grad()
+        loss = criterion(output,target)
+        loss.backward()
+        optimizer.step()
+
+        if batch_idx%50==0:
+            print(f'Train Epoch: {epoch} \
+            [{batch_idx * len(data)}/{len(train_loader.dataset)} \
+            ({100. * batch_idx / len(train_loader):.0f}%)]\t
+            Loss: {loss.data[0]:.6f}')
+
+
+
+
+    # DNN test - Ex 1
+def test():
+    model.eval()
+    test_loss=0
+    correct=0
+    for data,target in test_loader:
+
+        data = data.to(device)
+        target = target.to(device)
+
+        output = model(data)
+
+        test_loss += criterion(output,target).data[0]
+
+        pred = output.data.max(1,keepdim=True)[1]
+        correct += pred.eq(target.data.view_as(pred)).sum()
+
+    test_loss /= len(test_loader.dataset)
+    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+        test_loss, correct, len(test_loader.dataset),
+        100. * correct / len(test_loader.dataset)))
+
+
+
+
+
+
+
 
 ---------- CNN ----------
 
@@ -2276,14 +2328,306 @@ fit(model, train_loader, epochs, optimizer, loss_func)
 
 
 
+    # CNN train, valid - Ex 2
+# 내 스타일에 맞는 코드
+valid_loss_arr = []
+train_loss_arr = []
+
+for epoch in range(epochs):
+    start = time.time()
+    train_avg_loss = 0
+    train_acc = 0
+    model.train()
+    for image, label in train_loader:
+        # ------- assign train data
+        image = image.to(device)
+        label = label.to(device)
+        # ------- forward prop
+        optimizer.zero_grad()
+        output = model(image)
+        # ------- backward prop
+        loss = loss_func(output, label)
+        loss.backward()
+        optimizer.step()
+        # ------- get train performance
+        batch_acc = ((output.argmax(dim=1) == label).float().mean())
+        train_acc += batch_acc / len(train_loader)
+        train_avg_loss += loss / len(train_loader)
+    train_loss_arr.append(train_avg_loss)
+    print(f'Epoch : {epoch+1}/{epochs}, train_acc : {train_acc:.4f}, train_loss : {train_avg_loss:.4f}', end=' / ')
+
+    model.eval()
+    with torch.no_grad():
+        valid_acc=0
+        valid_avg_loss =0
+        for image, label in valid_loader:
+            # ------- assign valid data
+            image = image.to(device)
+            label = label.to(device)
+            # ------- forward prop
+            val_output = model(image)
+            val_loss = loss_func(val_output,label)
+            # ------- get valid performance
+            val_batch_acc = ((val_output.argmax(dim=1) == label).float().mean()) # acc = 맞춘 개수 / 배치사이즈
+            valid_acc += val_batch_acc / len(valid_loader) # acc / total_Iteration
+            valid_avg_loss += val_loss / len(valid_loader) # val_loss / total_Iteration
+        valid_loss_arr.append(valid_avg_loss)
+        print(f'valid_acc : {valid_acc:.4f}, val_loss : {valid_avg_loss:.4f}, takes {time.time() - start}secs')
+
+plt.plot(train_loss_arr, label='train')
+plt.plot(valid_loss_arr, label='valid')
+plt.legend()
+plt.show()
 
 
 
+    # CNN train - Ex 3
+loss_arr =[]
+for i in range(num_epoch):
+    for j,[image,label] in enumerate(train_loader):
+        x = image.to(device)
+        y_= label.to(device)
+
+        optimizer.zero_grad()
+        output = model.forward(x)
+        loss = loss_func(output,y_)
+        loss.backward()
+        optimizer.step()
+
+        if j % 1000 == 0:
+            print(loss)
+            loss_arr.append(loss.cpu().detach().numpy())
 
 
 
+    # CNN train - Ex 4
+def train(model, train_loader, optimizer, log_interval):
+    model.train()
+    for batch_idx, (image, label) in enumerate(train_loader):
+        image = image.to(DEVICE)
+        label = label.to(DEVICE)
+        # ------------- forward
+        optimizer.zero_grad()
+        output = model(image)
+        # ------------- backward
+        loss = criterion(output, label)
+        loss.backward()
+        optimizer.step()
+
+        if batch_idx % log_interval == 0:
+            print(f'Train Epoch: {Epoch} \
+                # 전체 데이터셋 중에 몇개 인지 센 것,
+                [{batch_idx * len(image)} / {len(train_loader.dataset)}] \
+                # 전체 배치 갯수 중에 몇 번째 배치인지 센 것
+                ({batch_idx / len(train_loader) * 100:.0f}%) \
+                # Loss가 몇인지 출력, 줄어드는지 확인
+                 Train Loss: {loss.item():.6f}')
 
 
+    # CNN train - Ex 5
+# loss만 보는 깔끔 코드
+total_batch = len(train_loader)
+
+Epochs = 5
+for epoch in range(Epochs):
+    avg_cost = 0
+    for num, (image, label) in enumerate(train_loader):
+        # ---- assign data
+        image = image.to(device)
+        label = label.to(device)
+        # ---- forward
+        optimizer.zero_grad()
+        output = net(image)
+        # ---- backward
+        loss = loss_func(output, label)
+        loss.backward()
+        optimizer.step()
+
+        avg_cost += loss / total_batch
+
+    print(f'[Epoch: {epoch}] cost = {avg_cost}')
+print('Learning Finished !')
+
+
+
+    # CNN train - Ex 6
+# lr_scheduler 사용
+print(len(trainloader))
+epochs = 50
+
+for epoch in range(1, epochs + 1):
+    running_loss = 0.0
+    lr_sche.step()
+    for batch_idx, (image, label) in enumerate(trainloader, 0):
+        # get the inputs
+        image = image.to(device)
+        label = label.to(device)
+        # zero the parameter gradients
+        optimizer.zero_grad()
+        # forward + backward + optimize
+        outputs = vgg16(image)
+        loss = criterion(outputs, label)
+        loss.backward()
+        optimizer.step()
+
+        # print statistics
+        running_loss += loss.item()
+        if batch_idx % 30 == 29: # print every 30 mini-batches
+            print(f'[{epoch}, {batch_idx}, loss: {running_loss / 30:.3f}]')
+            running_loss = 0
+print('Finished Training')
+
+
+
+    # CNN train, valid(test) - Ex 7
+total_batch = len(train_loader)
+loss_arr = []
+epochs = 20
+
+for epoch in range(epochs):  # vgg16 velog
+    avg_loss = 0
+    lr_sche.step()
+    for num, (image, label) in enumerate(train_loader):
+        x = image.to(DEVICE)
+        y_ = label.to(DEVICE)
+
+        optimizer.zero_grad()
+        output = model.forward(x)
+
+        loss = loss_func(output, y_)
+        loss.backward()
+        optimizer.step()
+
+        avg_loss += loss / total_batch
+
+    loss_arr.append(avg_loss)
+    print(f'[Epoch: {epoch+1} loss = {avg_loss}]')
+print('Training Finished !')
+
+correct = 0
+total = 0
+
+with torch.no_grad():
+    for num, (image, label) in enumerate(test_loader):
+        x = image.to(DEVICE)
+        y_ = label.to(DEVICE)
+        outputs = model.forward(x)
+
+        _, predicted = torch.max(outputs.data, 1)
+
+        total += y_.size(0)
+        correct += (predicted == y_).sum().item()
+
+print(f'Accuracy: {correct / total * 100}%')
+
+
+
+    # CNN test - Ex 1
+with torch.no_grad():
+    start = time.time()
+    test_acc=0
+    for image, label in test_loader:
+        # ------- assign valid data
+        image = image.to(device)
+        label = label.to(device)
+        # ------- forward prop
+        test_output = model(image)
+        # ------- get valid performance
+        test_batch_acc = ((test_output.argmax(dim=1) == label).float().mean()) # acc = 맞춘 개수 / 배치사이즈
+        test_acc += test_batch_acc / len(test_loader) # acc / total_Iteration
+    print(f'test_acc : {test_acc:.4f}, takes {time.time() - start}secs')
+
+
+    # CNN test 함수화 - Ex 2
+def test(model, test_loader, epochs):
+    start = time.time()
+    test_acc = 0
+    for num, (images, labels) in enumerate(test_loader):
+        test_images = images.to(device)
+        test_labels = labels.to(device)
+
+        test_outputs = model(test_images)
+
+        test_batch_acc = ((test_outputs.argmax(dim=1) == test_labels).float().mean()) # acc = 맞춘 개수 / 배치사이즈
+        test_acc += test_batch_acc / len(test_loader) # acc / total_Iteration
+    print(f'test_acc: {test_acc}, takes {time.time()-start:.2f} secs')
+test(model, test_loader, epochs)
+
+
+
+    # CNN test - Ex 3
+with torch.no_grad():
+    for num, (image, label) in enumerate(test_loader):
+        image = image.to(device)
+        label = label.to(device)
+
+        prediction = new_net(image)
+
+        correct_prediction = torch.argmax(prediction, 1) == label
+
+        accuracy = correct_prediction.float().mean()
+        print(f'Accuracy: {accuracy}')
+
+
+    # CNN test - Ex 4
+with torch.no_grad(): # 개인적으로 맘에드는 testing 코드 !
+    X_test = mnist_test.test_data.view(len(mnist_test), 1, 28, 28).float().to(device)
+    Y_test = mnist_test.test_labels.to(device)
+
+    prediction = model(X_test)
+
+    correct_prediction = torch.argmax(prediction, 1) == Y_test
+    accuracy = correct_prediction.float().mean()
+    print(f'Accuracy: {accuracy}')
+
+
+
+    # CNN test - Ex 5
+correct = 0
+total = 0
+
+model.eval()
+with torch.no_grad():
+    for image,label in test_loader:
+        x = image.to(device)
+        y_= label.to(device)
+
+        output = model.forward(x)
+        _,output_index = torch.max(output,1)
+
+        total += label.size(0)
+        correct += (output_index == y_).sum().float()
+
+    print("Accuracy of Test Data: {}".format(100*correct/total))
+
+
+    # CNN test - Ex 6
+def evaluate(model, test_loader):
+    model.eval()
+    test_loss = 0
+    correct = 0
+
+    with torch.no_grad():
+        for image, label in test_loader:
+            image = image.to(DEVICE)
+            label = label.to(DEVICE)
+
+            output = model(image)
+
+            test_loss += criterion(output, label).item()
+
+            prediction = output.max(1, keepdim=True)[1]
+	# max()하면 해당 tensor에서 가장 큰 값을 반환
+	# max(1)하면 해당 tensor에서 열쪽으로 쭉 본것들 중에 가장 큰 값들 반환
+	# max(1, keepdim=True) False가 default인데, keepdim값을 켜주면, max로 반환된 값의 열쪽으로의 index값을 반환
+	# max(1, keepdim=True)[1] keepdim=True일때 값 반환시, 가장 큰 값들의 텐서와 index값들의 텐서 두개를 반환해서 그 중에 인덱스 반환 텐서를 선택
+            correct += prediction.eq(label.view_as(prediction)).sum().item()
+            # eq로 prediction의 값들과 일치하는지 T/F로 이루어진 텐서 반환
+	# view_as 메소드로 label의 [16]텐서를 [1, 16]텐서로 prediction과 동일하게 변환
+	# 비교한 값들의 sum()으로 해당 batch에서 몇개를 맞추었는지 갯수를 item()으로 반환
+        test_loss /= len(test_loader.dataset)
+        test_accuracy = 100. * correct / len(test_loader.dataset)
+        return test_loss, test_accuracy
 
 
 
@@ -2327,6 +2671,25 @@ fit(model, train_loader, epochs, optimizer, loss_func)
 
 
 
+# AE train - Ex 1
+def train(model, train_loader, optimizer, log_interval):
+    model.train()
+    for batch_idx, (image, _) in enumerate(train_loader):
+        image = image.view(-1, 28 * 28).to(DEVICE)
+        target = image.view(-1, 28 * 28).to(DEVICE)
+
+        optimizer.zero_grad()
+
+        encoded, decoded = model(image)
+        loss = criterion(decoded, target)
+        loss.backward()
+        optimizer.step()
+
+        if batch_idx % log_interval == 0:
+            print(f'Train Epoch: {Epoch}, \
+                     [{batch_idx * len(image)}/{len(train_loader.dataset)} \
+                     ({100 * batch_idx / len(train_loader):.0f}%)], \
+                     Train Loss {loss.item():.6f}')
 
 
 
