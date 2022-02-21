@@ -864,6 +864,7 @@ print(loss)
 º nn.PoissonNLLLoss: target이 poission 분포를 가진 경우 Negative log likelihood loss를 계산한다.PNLL
 º nn.KLDivLoss: Kullback-Leibler divergence Loss를 계산한다.KLDiv
 º nn.BCELoss: Binary Cross Entropy를 계산한다.BCE
+  - 이진분류에서 사용, MSE나 MAE보다 패널티가 높아서 이진분류할 때 손실함수로써 더 자주 사용하는 편
 º nn.BCEWithLogitsLoss: Sigmoid 레이어와 BCELoss를 하나로 합친 것인데, 홈페이지의 설명에 따르면 두 개를 따로 쓰는 것보다 이 함수를 쓰는 것이 조금 더 수치 안정성을 가진다고 한다.
    BCE이외에 MarginRankingLoss, HingeEmbeddingLoss, MultiLabelMarginLoss, SmoothL1Loss, SoftMarginLoss, MultiLabelSoftMarginLoss, CosineEmbeddingLoss, MultiMarginLoss, TripletMarginLoss를 계산하는 함수들이 있다. 필요하면 찾아보자.
 # 본문: https://greeksharifa.github.io/pytorch/2018/11/10/pytorch-usage-03-How-to-Use-PyTorch/
@@ -915,10 +916,18 @@ squeezenet = models.squeezenet1_0()
 densenet = models.densenet161()
 inception = models.inception_v3()
 
-# pretrained model load
+    # pretrained model - Ex 1
 resnet18 = models.resnet18(pretrained=True)
 vgg16 = models.vgg16(pretrained=True)
 ...
+
+    # pretrained model - Ex 2
+model = models.resnet34(pretrained = False)
+num_ftrs = model.fc.in_features
+model.fc = nn.Linear(num_ftrs, 10)
+model = model.cuda()
+
+
 
 
 
@@ -1187,6 +1196,26 @@ test(model, optimizer, x_test, y_test)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     # with torch.no_grad()
  - with torch.no_grad(): 범위 안에서는 gradient 계산을 하지 않는다.
    with torch.no_grad() 안에서 선언된 with torch.enable_grad():
@@ -1262,6 +1291,48 @@ class NNModel(torch.nn.Module):
 
 
 
+    # DNN train, valid - Ex 1
+# 마지막 loss 프린트 부분은 사용시 수정해서 사용
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.SGD(net.parameters(), lr=initial_lr, momentum=0.9)
+lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=[int(num_epoch * 0.5), int(num_epoch * 0.75)], gamma=0.1, last_epoch=-1)
+
+for epoch in range(num_epoch):
+    lr_scheduler.step()
+
+    running_loss = 0.0
+    for i, data in enumerate(train_loader, 0):
+        inputs, labels = data
+        inputs, labels = inputs.to(device), labels.to(device)
+
+        optimizer.zero_grad()
+
+        outputs = net(inputs)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+
+        running_loss += loss.item()
+
+        show_period = 100
+        if i % show_period == show_period-1:    # print every "show_period" mini-batches
+            print(f'[{epoch + 1}, {(i + 1)*batch_size:5d}/50000] loss: {running_loss / show_period:.7f}')
+            running_loss = 0.0
+
+    # validation part
+    correct = 0
+    total = 0
+    for i, data in enumerate(valid_loader, 0):
+        inputs, labels = data
+        inputs, labels = inputs.to(device), labels.to(device)
+        outputs = net(inputs)
+
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
+
+    print(f'[{epoch + 1} epoch] Accuracy of the network on the validation images: {100 * correct / total}')
+print('Finished Training')
 
 
 
@@ -1768,7 +1839,7 @@ class CNN(torch.nn.Module):
 class VGG(nn.Modules):
     def __init__(self, features, num_classes=1000, init_weights=True):
        super(VGG, self).__init__()
-       self.features = features
+       self.features = features # convolution layer
        self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
        self.classifier = nn.Sequential(
            nn.Linear(512 * 7 * 7, 4096),
@@ -1776,7 +1847,7 @@ class VGG(nn.Modules):
            nn.Linear(4096, 4096),
            nn.ReLU(True),
            nn.Linear(4096, num_classes),
-       )
+       ) # FC layer
        if init_weights:
            self.initialize_weights()
 
@@ -1822,8 +1893,386 @@ class VGG(nn.Modules):
        'B': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
        'D': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
        'E': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M'],
+       'custom' : [64,64,64,'M',128,128,128,'M',256,256,256,'M']
     }
+    # VGG Ex - 1 사용예시
+vgg_custom = VGG(make_layers(cfg['custom']), num_classes=10, init_weights=True)
 
+cfg = [32, 32, 'M', 64, 64, 128, 128, 128, 'M',
+        256, 256, 256, 512, 512, 512, 'M'] # 13 + 3 = vgg16
+conv = make_layers(cfg['custom'], batch_norm=True)
+vgg16 = VGG(vgg.make_layers(cfg), 10, init_weights=True).to(device)
+
+
+
+
+    # VGG Ex - 2
+class VGG(nn.Module):
+    def __init__(self, conv_layers, num_classes=10, init_weights=True):
+        super(VGG, self).__init__()
+
+        self.conv_layers = conv_layers
+        # self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
+        self.classifier = nn.Sequential(
+            nn.Linear(256 * 4 * 4, 2048), # 32->(16, 8, 4): 3번 pooling
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(2048, 1024),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(1024, num_classes),
+         ) # FC layer
+
+        if init_weights:
+            self._initialize_weights()
+
+    def forward(self, x):
+        x = self.conv_layers(x)
+        #x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+        return x
+
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight, 0, 0.01)
+                nn.init.constant_(m.bias, 0)
+vgg16 = VGG(conv, num_classes=10, init_weights=True)
+
+
+
+
+    # ResNet 설명
+ - ResNet은 Residual Network의 약자로, 마이크로소프트에서 제안한 모델입니다.
+   지금까지도 이미지 분류의 기본 모델로 널리 쓰이고 있습니다.
+   Residual Block이라는 개념을 도입했으며 이전 Layer의 Feature Map을 다음 Layer의 Feature Map에 더해주는 개념입니다.
+   이를 'Skip Connection' 이라 합니다. 네트워크가 깊어짐에 따라 앞 단의 Layer에 대한 정보는 뒤의 Layer에서는 희석될 수 밖에 없습니다.
+   이러한 단점을 보완하기 위해 이전의 정보를 뒤에서도 함께 활용하는 개념이라 이해할 수 있습니다.
+
+    # ResNet - Ex 1
+# ----- BasicBlock 정의
+class BasicBlock(nn.Module):
+    def __init__(self, in_planes, planes, stride = 1):
+        super(BasicBlock, self).__init__()
+        self.conv1 = nn.Conv2d(in_planes, planes, kernel_size = 3, stride = stride, padding = 1, bias = False)
+        self.bn1 = nn.BatchNorm2d(planes)
+        self.conv2 =  nn.Conv2d(planes, planes, kernel_size = 3, stride = 1, padding = 1, bias = False)
+        self.bn2 = nn.BatchNorm2d(planes)
+
+        # ----- shortcut 정의(이전 feature map 그대로 가져오는 층)
+        self.shortcut = nn.Sequential()
+        if stride != 1 or in_planes != planes:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_planes, planes, kernel_size = 1, stride = stride, bias = False),
+                nn.BatchNorm2d(planes))
+
+    def forward(self, x):
+        out = F.relu(self.bn1(self.conv1(x)))
+        out = self.bn2(self.conv2(out))
+        out += self.shortcut(x)
+        out = F.relu(out)
+        return out
+
+# ------ ResNet 정의
+class ResNet(nn.Module):
+    def __init__(self, num_classes = 10):
+        super(ResNet, self).__init__()
+
+        self.in_planes = 16
+
+        self.conv1 = nn.Conv2d(3, 16, kernel_size = 3, stride = 1, padding = 1, bias = False)
+        self.bn1 = nn.BatchNorm2d(16)
+        self.layer1 = self._make_layer(16, 2, stride = 1)
+        self.layer2 = self._make_layer(32, 2, stride = 2)
+        self.layer3 = self._make_layer(64, 2, stride = 2)
+        self.linear = nn.Linear(64, num_classes)
+
+    def _make_layer(self, planes, num_blocks, stride):
+        strides = [stride] + [1] * (num_blocks -1)
+        layers = []
+        for stride in strides:
+            layers.append(BasicBlock(self.in_planes, planes, stride))
+            self.in_planes = planes
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        out = F.relu(self.bn1(self.conv1(x)))
+        out = self.layer1(out)
+        out = self.layer2(out)
+        out = self.layer3(out)
+        out = F.avg_pool2d(out, 8)
+        out = out.view(out.size(0), -1)
+        out = self.linear(out)
+        return out
+
+
+
+    # ResNet - Ex 2
+def conv3x3(in_planes, out_planes, stride=1):
+    ''' 3x3 convolution with padding '''
+    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stirde, padding=1, bias=False)
+
+def conv1x1(in_planes, out_planes, stride=1):
+    ''' 1x1 convolution '''
+    return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
+
+
+class BasicBlock(nn.Module):
+    expansion = 1
+
+    def __init__(self, inplanes, planes, stride=1, downsample=None):
+        super(BasicBlock, self).__init__()
+        self.conv1 = conv3x3(inplanes, planes, stride)
+        self.bn1 = nn.BatchNorm2d(planes)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = conv3x3(planes, planes)
+        self.bn2 = nn.BatchNorm2d(planes)
+        self.downsample = downsample
+        self.stride = stride
+
+    def forward(self, x):
+        identity = x
+
+        out = self.conv1(x) # 3x3, stride = stride
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out) # 3x3 . stride = 1
+        out = self.bn2(out)
+
+        if self.downsample is not None:
+            identity = self.downsample(x)
+
+        out += identity # relu까지 거치고 원래의 값을 더하는게 아니라, 본래의 값까지 더한 후에 relu를 거침
+        out = self.relu(out)
+
+        return out
+
+
+class Bottleneck(nn.Module):
+    expansion = 4
+
+    def  __init__(self, in_planes, stride=1, downsample=None):
+        super(Bottleneck, self).__init__()
+        self.conv1 = conv1x1(inplanes, planes)
+        slef.bn1 = nn.BatchNorm2d(planes)
+        self.conv2 = conv3x3(planes, planes, stride)
+        self.bn2 = nn.BatchNorm2d(planes)
+        self.conv3 = conv1x1(planes, planes * self.expansion)
+        self.bn3 = nn.BatchNormwd(planes * self.expansion)
+        self.relu = nn.ReLU(inplace=True)
+        self.downsample = downsample
+        self.stride = stride
+
+    def forward(self, x):
+        identity = x
+
+        out = self.conv1(x) # 1x1, stride = 1
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out) # 3x3, stride = stride
+        out = self.bn2(out)
+        out = self.relu(out)
+
+        out = self.conv3(out) # 1x1, stride = 1
+        out = self.bn3(out)
+
+        if self.downsample is not None:
+            identity = self.downsample(x)
+
+        out += identity
+        out = self.relu(out)
+
+        return out
+
+
+class ResNet(nn.Module):
+
+    def __init__(self, block, layers, num_classes=1000, zero_init_residual=False):
+        super(ResNet, self).__init__()
+
+        self.inplanes = 64
+
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
+
+        self.bn1 = nn.BatchNorm2d(64)
+        self.relu = nn.ReLU(inplace=True)
+
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+
+        self.layer1 = self._make_layer(block, 64, layers[0]) # '''3'''
+        self.layer2 = self._make_layer(block, 128, layers[1], stride=2) # '''4'''
+        self.layer3 = self._make_layer(block, 256, layers[2], stride=2) # '''6'''
+        self.layer4 = self._make_layer(block, 512, layers[3], stride=2) # '''3'''
+
+        self.avgpool = nn.AdaptiveAvgPool2d((1,1))
+        self.fc = nn.Linear(512 * block.expansion, num_classes)
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m,nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+        # Zero-initialize the last BN in each residual branch,
+        # so that the residual branch starts with zeros, and each residual block behaves like an identity.
+        # This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
+        if zero_init_residual:
+            for m in self.modules():
+                if isinstance(m, Bottleneck):
+                    nn.init.constant_(m.bn3.weight, 0)
+                elif isinstance(m, BasicBlock):
+                    nn.init.constant_(m.bn2.weight, 0)
+
+        def _make_layer(self, block, planes, blocks, stride=1):
+
+            downsample = None
+
+            if stride != 1 or self.inplanes != planes * block.expansion:
+
+                downsample = nn.Sequential(
+                    conv1x1(self.inplanes, planes * block.expansion, stride), # conv1x1(256, 512, 2)
+                    nn.BatchNorm2d(planes * block.expansion), # batchnorm2d(512)
+                )
+
+            layers = []
+            layers.append(block(self.inplanes, planes, stride, downsample))
+
+            self.inplanes = planes * block.expasion # self.inplanes = 128 * 4
+
+            for _ in range(1, block):
+                layers.append(block(self, inplanes, planes)) # * 3
+
+            return nn.Sequential(*layers)
+
+        def forward(self, x):
+            x = self.conv1(x)
+            x = self.bn1(x)
+            x = self.relu(x)
+            x = self.maxpool(x)
+
+            x = self.layer1(x)
+            x = self.layer2(x)
+            x = self.layer3(x)
+            x = self.layer4(x)
+
+            x = self.avgpool(x)
+            x = x.view(x.size(0), -1)
+            x = self.fc(x)
+
+            return x
+
+def resnet18(pretained=False, **kwargs):
+    model = ResNet(BasicBlock, [2,2,2,2], **kwargs) # => 2 * (2+2+2+2) + 1(conv1) + 1(fc) = 16 + 2 = resnet18
+    return model
+def resnet50(pretrained=False, **kwargs):
+    model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs) #=> 3*(3+4+6+3) +(conv1) +1(fc) = 48 +2 = 50
+    return model
+def resnet152(pretrained=False, **kwargs):
+    model = ResNet(Bottleneck, [3, 8, 36, 3], **kwargs) # 3*(3+8+36+3) +2 = 150+2 = resnet152
+    return model
+
+
+
+    # GoogleNet - Ex 1
+class InceptionA(nn.Module):
+    def __init__(self, in_channels):
+        self.branch1x1 = nn.Conv2d(in_channels, 16, kernel_size=1)
+
+        self.branch5x5_1 = nn.Conv2d(in_channels, 16, kernel_size=1)
+        self.branch5x5_2 = nn.Conv2d(16, 24, kernel_size=5, padding=2)
+
+        slef.branch3x3db1_1 = nn.Conv2d(in_channels, 16, kernel_size=1)
+        self.branch3x3db1_2 = nn.Conv2d(16, 24, kernel_size=3, padding=1)
+        self.branch3x3db1_3 = nn.Conv2d(24, 24, kernel_size=3, padding=1)
+
+        self.branch_pool = nn.Conv2d(in_channels, 24, kernel_size=1)
+
+    def forward(self, x):
+        branch1x1 = self.branch1x1(x)
+
+        branch5x5 = self.branch5x5_1(x)
+        branch5x5 = self.branch5x5_2(branch5x5)
+
+        branch3x3db1 = self.branch3x3db_1(x)
+        branch3x3db1 = self.branch3x3db1_2(branch3x3db1)
+        branch3x3db1 = self.branch3x3db1_3(branch3x3db1)
+
+        branch_pool = F.avg_pool2d(x, kernel_size=3, stride=1, padding=1)
+        branch_pool = self.branch_pool(branch_pool)
+
+        outputs = [branch1x1, branch5x5, branch3x3db1, branch_pool]
+        return torch.cat(outputs, 1)
+
+class googleNet(nn.Module):
+
+    def __init__(self):
+        super(googleNet, self).__init__()
+        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
+        self.conv2 = nn.Conv2d(88,20, kernel_size=5)
+
+        self.incept1 = InceptionA(in_channels=10)
+        self.incept2 = InceptionA(in_channels=20)
+
+        self.mp = nn.MaxPool2d(2)
+        self.fc = nn.Linear(1408, 10)
+
+    def forward(self, x):
+        x = F.relu(self.mp(self.conv1(x)))
+        x = self.incept1(x)
+        x = F.relu(self.mp(self.conv2(x)))
+        x = self.incept2(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
+        return F.log_softmax(x)
+
+
+    # GoogleNet의 보조 분류기(auxiliary classifier)
+ - 보조 분류기는 모델이 깊어지면서 마지막 단의 분류 네트워크에서 발생한 손실이 모델의 입력 부분까지
+   전달이 안되는 현상(Gradient Vanishing problem)을 극복하기 위해 사용되었습니다.
+   즉 학습을 보조하는 역할입니다.
+   물론 학습 이후 테스트 시에는 사용되지 않습니다.
+
+
+
+
+    # CNN train - Ex 1
+# 내가 짠 것
+loss_arrs = []
+
+def fit(model, train_loader, epochs, optimizer, loss_func):
+    for epoch in range(epochs):
+        start = time.time()
+        avg_loss = 0
+        total_batch = len(train_dataset) // batch_size
+
+        for num, (images, labels) in enumerate(train_loader):
+            images = images.to(device)
+            labels = labels.to(device)
+
+            optimizer.zero_grad()
+
+            outputs = model(images)
+            loss = loss_func(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+            avg_loss += loss / total_batch
+            loss_arrs.append(avg_loss)
+        print(f'[Epoch: {epoch+1}/{epochs}]  loss={avg_loss:.4f},  time={time.time()-start:.2f}')
+    print('Learning Finished !')
+fit(model, train_loader, epochs, optimizer, loss_func)
 
 
 
@@ -1923,12 +2372,19 @@ from torch.utils.data import DataLoader
 # torchvision
 import torchvision.datasets as dsets # 컴퓨터 비전 연구 분야에서 자주 사용되는 'torchvision' 모듈 내의 'transforms'와 'datasets' 함수를 임포트
 import torchvision.transforms as transforms
+import torchvision.models as models
+import torchvision.utils as v_utils
+import torchvision.transforms as transforms
+
 
 
 # For reproducibility
 torch.manual_seed(42)
 if device == 'cuda':
     torch.cuda.manual_seed_all(42)
+
+# Set device
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 
