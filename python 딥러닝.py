@@ -18,6 +18,8 @@
 
 
 
+
+
 ---------- Pytorch Basic ----------
 
 
@@ -856,9 +858,26 @@ print(loss)
 
 
     # PyTorch Loss function의 종류
+    # L1, L2
 º nn.L1Loss: 각 원소별 차이의 절댓값을 계산한다.L1
 º nn.MSELoss: Mean Squared Error(평균제곱오차) 또는 squared L2 norm을 계산한다.MSE
-º nn.CrossEntropyLoss: Cross Entropy Loss를 계산한다. nn.LogSoftmax() and nn.NLLLoss()를 포함한다. weight argument를 지정할 수 있다.CE
+    # CrossEntropyLoss
+º nn.CrossEntropyLoss: Cross Entropy Loss를 계산한다.
+# CrossEntropyLoss 설명 - Ex 1
+ - nn.LogSoftmax() and nn.NLLLoss()를 포함한다. weight argument를 지정할 수 있다.
+# CrossEntropyLoss 설명 - Ex 2
+ - http://www.gisdeveloper.co.kr/?p=8668
+   PyTorch에서는 다양한 손실함수를 제공하는데, 그 중 torch.nn.CrossEntropyLoss는 다중 분류에 사용됩니다.
+   torch.nn.CrossEntropyLoss는 nn.LogSoftmax와 nn.NLLLoss의 연산의 조합입니다.
+   nn.LogSoftmax는 신경망 말단의 결과 값들을 확률개념으로 해석하기 위한 Softmax 함수의 결과에 log 값을 취한 연산이고,
+   nn.NLLLoss는 nn.LogSoftmax의 log 결과값에 대한 교차 엔트로피 손실 연산(Cross Entropy Loss|Error)입니다.
+# CrossEntropyLoss 설명 - Ex 3
+ - https://wingnim.tistory.com/34
+   Cross Entropy Loss는 다음과 같습니다.
+   정답 Y와 log (우리가 예측한 Y)값을 곱해서 뺀 것입니다.
+   이전 binary classification에서 본 것과 조금 다른데요, multi label classification에서는 CELoss를 이렇게 정답 label에 대해서만 (정답 label만 1이므로...) 적용시킵니다.
+   이렇게 되면 모든 label을 1로 예측하면 loss가 0이 아니냐! 라고 생각할 수도 있는데요, softmax를 거치기 떄문에 모든 label의 총 합이 1이라서 모든 label을 1로 예측할 수는 없습니다 !
+
 º nn.CTCLoss: Connectionist Temporal Classification loss를 계산한다.
 º nn.NLLLoss: Negative log likelihood loss를 계산한다.NLL
 º nn.PoissonNLLLoss: target이 poission 분포를 가진 경우 Negative log likelihood loss를 계산한다.PNLL
@@ -1244,6 +1263,30 @@ OUTPUT_SIZE: 최종으로 출력되는 값의 벡터의 크기를 의미,
     # 파라미터 설명 - Ex 1
  - if you have 1000 trainning examples, and your batch size is 500,
    then it will take 2 iterations to complete 1 epoch.
+
+
+
+
+    # Save & Load model
+ - 모델을 저장하는 방법은 여러 가지가 있지만, pytorch를 사용할 때는 다음 방법이 가장 권장된다.
+   아주 유연하고 또 간단하기 때문이다.
+ - 모델을 통째로 저장 혹은 불러오려면,
+    - state_dict(destination=None, prefix='', keep_vars=False)
+      모델의 모든 상태(parameter, running averages 등 buffer)를 딕셔너리 형태로 반환한다. ,
+    - load_state_dict(state_dict, strict=True)
+      parameter와 buffer 등 모델의 상태를 현 모델로 복사한다. strict=True이면 모든 module의 이름이 정확히 같아야 한다.
+
+    # Save Ex - 1:
+torch.save(model.state_dict(), PATH)
+ ex: torch.save(net.state_dict(), '../model/model.pth')
+    # Load Ex - 1:
+model = TheModelClass(*args, **kwargs)
+ ex: new_net = CNN().to(device)
+model.load_state_dict(torch.load(PATH))
+ ex: new_net.load_state_dict(torch.load('../model/model.pth'))
+
+
+
 
 
 
@@ -2002,6 +2045,29 @@ vgg16 = VGG(conv, num_classes=10, init_weights=True)
 
 
 
+# VGG test Ex - 1
+correct = 0
+total = 0
+
+with torch.no_grad():
+    for image, label in testloader:
+        image = image.to(device)
+        label = label.to(device)
+        outputs = vgg16(image)
+
+        _, predicted = torch.max(outputs.data, 1)
+
+        total += labels.size(0)
+
+        correct += (predicted == label).sum().item()
+
+print(f'Accuracy of the network on the 10000 test images: {100 * correct / total}%%')
+
+
+
+
+
+
 
     # ResNet 설명
  - ResNet은 Residual Network의 약자로, 마이크로소프트에서 제안한 모델입니다.
@@ -2664,10 +2730,7 @@ def evaluate(model, test_loader):
 
 
 
----------- AE ----------
-
-
-
+---------- AE, AutoEncoder ----------
 
 
 
@@ -2690,6 +2753,50 @@ def train(model, train_loader, optimizer, log_interval):
                      [{batch_idx * len(image)}/{len(train_loader.dataset)} \
                      ({100 * batch_idx / len(train_loader):.0f}%)], \
                      Train Loss {loss.item():.6f}')
+
+
+
+# AE test - Ex 1
+def evaluate(model, test_loader):
+    model.eval()
+    avg_loss = 0
+    real_image = []
+    gen_image = []
+
+    with torch.no_grad():
+        for image, _ in test_loader:
+            image = image.view(-1, 28 * 28).to(DEVICE)
+            target = image.view(-1, 28 * 28).to(DEVICE)
+            encoded, decoded = model(image)
+
+            avg_loss += criterion(decoded, target).item()
+            real_image.append(image.to("cpu"))
+            gen_image.append(decoded.to("cpu"))
+    avg_loss /= len(test_loader.dataset)
+
+    return avg_loss, real_image, gen_image
+
+
+
+# AE 함수 - Ex 1
+for Epoch in range(1, EPOCHS + 1):
+    train(model, train_loader, optimizer, log_interval = 200)
+    avg_loss, real_image, gen_image = evaluate(model, test_loader)
+    print(f'\n[EPOCH: {Epoch}], \tAvg_Loss: {avg_loss:.4f}')
+
+    f, a = plt.subplots(2, 10, figsize=(10, 4))
+    for i in range(10):
+        img = np.reshape(real_image[0][i], (28, 28))
+        a[0][i].imshow(img, cmap='gray_r')
+        a[0][i].set_xticks(())
+        a[0][i].set_yticks(())
+
+    for i in range(10):
+        img = np.reshape(gen_image[0][i], (28, 28))
+        a[1][i].imshow(img, cmap='gray_r')
+        a[1][i].set_xticks(())
+        a[1][i].set_yticks(())
+    plt.show()
 
 
 
