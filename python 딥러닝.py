@@ -1212,6 +1212,17 @@ OUTPUT_SIZE: 최종으로 출력되는 값의 벡터의 크기를 의미,
 
 
 
+    # 모델 작은 데이터로 동작하는지 테스트
+batch_train_images, batch_train_labels = next(iter(train_loader))
+batch_test_images, batch_test_labels = next(iter(test_loader))
+
+temp_images = batch_train_images.to(device)
+predictions = model(temp_images)
+print(temp_images.shape)
+print(predictions.shape)
+
+
+
     # 학습 후 모델 변수 값 확인
 # 현재 모델은 weight와 bias을 변수로 가지고 있는데 그 값들이 학습 후 실제 몇인지 수치적으로 확인해봅니다.
 param_list = list(model.parameters())
@@ -1228,6 +1239,11 @@ plt.show()
 # 렐루 활성화 함수는 이 중 0보다 작은 값들을 모두 0으로 만들기 때문에
 # 여러 은닉층을 통과하면서 여러 지점에서 꺾인 모양이 나타나게 됩니다.
 
+
+
+    # 헷갈리는 max, argmax 코드
+_, predicted = torch.max(val_output.data, 1) == val_output.argmax(dim=1)
+predicted
 
 
 
@@ -3024,6 +3040,62 @@ for i in range(50):
 ---------- AE, AutoEncoder ----------
 
 
+    # AE, AutoEncoder, 오토인코더
+ - 오토인코더는 데이터에 대한 효율적인 압축을 신경망을 통해 자동으로 학습하는 모델입니다.
+   오토인코더는 입력 데이터 자체가 라벨로 사용되기 때문에 비지도학습에 속합니다.
+
+ - 보통 입력 데이터의 차원보다 낮은 차원으로 압축하기 때문에,
+   효율적인 인코딩(efficient data encoding), 특성학습(feature learning),
+   표현 학습(representation learning)의 범주에 속하기도 하고 차원 축소(dimensionality reduction)의 한 방법이기도 합니다.
+
+ - 왼쪽에서 입력 X가 들어와 신경망을 통해 잠재 변수(latent variable) z가 됩니다.
+   압축된 z는 다시 신경망을 통과해 출력 X'가 됩니다.
+
+ - 손실은 X와 X'에서 같은 위치에 있는 픽셀 간의 차이를 더한 값이라 할 수 있습니다.
+   이 출력과 입력 간의 차이로 모델의 가중치를 업데이트 합니다.
+
+
+
+# AE model - Ex 1
+class AE(nn.Module):
+    def __init__(self):
+        super(AE, self).__init__()
+
+        self.encoder = nn.Sequential(
+            nn.Linear(28 * 28, 512),
+            nn.ReLU(),
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Linear(256, 32),)
+
+        self.decoder = nn.Sequential(
+            nn.Linear(32, 256),
+            nn.ReLU(),
+            nn.Linear(256, 512),
+            nn.ReLU(),
+            nn.Linear(512, 28 * 28),)
+
+    def forward(self, x):
+        encoded = self.encoder(x)
+        decoded = self.decoder(encoded)
+        return encoded, decoded
+
+# AE model - Ex 2
+# 인공신경망으로 이루어진 오토엔코더를 생성합니다.
+# 단순하게 하기 위해 활성화 함수는 생략했습니다.
+class Autoencoder(nn.Module):
+    def __init__(self):
+        super(Autoencoder,self).__init__()
+        self.encoder = nn.Linear(28*28,20)
+        self.decoder = nn.Linear(20,28*28)
+
+    def forward(self,x):
+        x = x.view(batch_size,-1)
+        encoded = self.encoder(x)
+        out = self.decoder(encoded).view(batch_size,1,28,28)
+        return out
+
+
 
 # AE train - Ex 1
 def train(model, train_loader, optimizer, log_interval):
@@ -3045,7 +3117,21 @@ def train(model, train_loader, optimizer, log_interval):
                      ({100 * batch_idx / len(train_loader):.0f}%)], \
                      Train Loss {loss.item():.6f}')
 
+# AE train - Ex 2
+loss_arr =[]
+for i in range(num_epoch):
+    for j,[image,label] in enumerate(train_loader):
+        x = image.to(device)
 
+        optimizer.zero_grad()
+        output = model.forward(x)
+        loss = loss_func(output,x)
+        loss.backward()
+        optimizer.step()
+
+        if (j+1) % 50 == 0:
+            print((j+1), loss)
+            loss_arr.append(loss.item())
 
 # AE test - Ex 1
 def evaluate(model, test_loader):
@@ -3091,6 +3177,294 @@ for Epoch in range(1, EPOCHS + 1):
 
 
 
+# AE 이미지 확인 - MNIST
+out_img = torch.squeeze(outputs.cpu().data)
+print(out_img.size())
+
+for i in range(10):
+    fig, axes = plt.subplots(1, 2, figsize=(3, 2))
+    axes[0].imshow(torch.squeeze(images[i]).cpu().numpy(), cmap='gray')
+    axes[1].imshow(out_img[i].cpu().numpy(), cmap='gray')
+    plt.show()
+
+
+
+
+    # CAE, 합성곱 오토인코더
+ - 합성곱 연산을 오토인코더에 적용
+
+ - 전치합성곱: 하나의 입력값을 받아 여기에 서로 다른 가중치를 곱해 필터의 크기만큼 입력값을 '퍼뜨리는' 역할을 합니다.
+   하나의 입력에 대해서 커널 사이즈 만큼의 결과가 생성됩니다.
+   파이토치에서는 이미지 데이터에 대해 nn.ConvTranspose2d 함수를 사용해 전치 합성곱 연산을 합니다.
+
+ - 전치 합성곱에서는 패딩은 결괏값에서 제일 바깥 둘레를 빼주는 역할을 합니다.
+
+ - 아웃풋패딩(output_padding)은 결과로 나오는 텐서의 크기를 맞추기 위해 있는 인수입니다.
+   padding인수로 잘리는 부분을 줄여주는 역할을 합니다
+
+ - 패딩없이 아웃풋패딩을 하게 되면 테두리를 0으로 채누는 결과가 됩니다.
+
+ - 전치 컨볼루션 연산으로 이미지 크기를 2배로 늘리는 방법 2가지 둘중에 kernel_size=4,stride=2,padding=1 세팅이 체커보드 아티팩트가 덜합니다.
+
+# CAE model(convolutional AE) - Ex 1
+# (Encoder, Decoder class 따로 정의)
+class Encoder(nn.Module):
+    def __init__(self):
+        super(Encoder,self).__init__()
+        self.layer1 = nn.Sequential(
+                        nn.Conv2d(1,16,3,padding=1),                            # batch x 16 x 28 x 28
+                        nn.ReLU(),
+                        nn.BatchNorm2d(16),
+                        nn.Conv2d(16,32,3,padding=1),                           # batch x 32 x 28 x 28
+                        nn.ReLU(),
+                        nn.BatchNorm2d(32),
+                        nn.Conv2d(32,64,3,padding=1),                           # batch x 32 x 28 x 28
+                        nn.ReLU(),
+                        nn.BatchNorm2d(64),
+                        nn.MaxPool2d(2,2)                                       # batch x 64 x 14 x 14
+        )
+        self.layer2 = nn.Sequential(
+                        nn.Conv2d(64,128,3,padding=1),                          # batch x 64 x 14 x 14
+                        nn.ReLU(),
+                        nn.BatchNorm2d(128),
+                        nn.MaxPool2d(2,2),
+                        nn.Conv2d(128,256,3,padding=1),                         # batch x 64 x 7 x 7
+                        nn.ReLU()
+        )
+
+
+    def forward(self,x):
+        out = self.layer1(x)
+        out = self.layer2(out)
+        out = out.view(batch_size, -1)
+        return out
+
+class Decoder(nn.Module):
+    def __init__(self):
+        super(Decoder,self).__init__()
+        self.layer1 = nn.Sequential(
+                        nn.ConvTranspose2d(256,128,3,2,1,1),                    # batch x 128 x 14 x 14
+                        nn.ReLU(),
+                        nn.BatchNorm2d(128),
+                        nn.ConvTranspose2d(128,64,3,1,1),                       # batch x 64 x 14 x 14
+                        nn.ReLU(),
+                        nn.BatchNorm2d(64)
+        )
+        self.layer2 = nn.Sequential(
+                        nn.ConvTranspose2d(64,16,3,1,1),                        # batch x 16 x 14 x 14
+                        nn.ReLU(),
+                        nn.BatchNorm2d(16),
+                        nn.ConvTranspose2d(16,1,3,2,1,1),                       # batch x 1 x 28 x 28
+                        nn.ReLU()
+        )
+
+    def forward(self,x):
+        out = x.view(batch_size,256,7,7)
+        out = self.layer1(out)
+        out = self.layer2(out)
+        return out
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print(device)
+
+encoder = Encoder().to(device)
+decoder = Decoder().to(device)
+
+# 인코더 디코더의 파라미터를 동시에 학습시키기 위해 이를 묶는 방법입니다.
+parameters = list(encoder.parameters())+ list(decoder.parameters())
+
+loss_func = nn.MSELoss()
+optimizer = torch.optim.Adam(parameters, lr=learning_rate)
+
+
+# CAE train - Ex 1
+for i in range(num_epoch):
+    for j,[image,label] in enumerate(train_loader):
+        optimizer.zero_grad()
+        image = image.to(device)
+
+        output = encoder(image)
+        output = decoder(output)
+
+        loss = loss_func(output,image)
+        loss.backward()
+        optimizer.step()
+
+    if j % 10 == 0:
+        # 모델 저장하는 방법
+        # 이 역시 크게 두가지 방법이 있는데 여기 사용된 방법은 좀 단순한 방법입니다.
+        # https://pytorch.org/tutorials/beginner/saving_loading_models.html
+        torch.save([encoder,decoder],'./model/conv_autoencoder.pkl')
+        print(loss)
+
+
+out_img = torch.squeeze(output.cpu().data)
+print(out_img.size())
+
+for i in range(5):
+    plt.subplot(1,2,1)
+    plt.imshow(torch.squeeze(image[i]).cpu().numpy(),cmap='gray')
+    plt.subplot(1,2,2)
+    plt.imshow(out_img[i].numpy(),cmap='gray')
+    plt.show()
+
+
+
+# CAE test - Ex 1
+with torch.no_grad():
+    for j,[image,label] in enumerate(test_loader):
+
+        image = image.to(device)
+        output = encoder(image)
+        output = decoder(output)
+
+    if j % 10 == 0:
+        print(loss)
+
+out_img = torch.squeeze(output.cpu().data)
+print(out_img.size())
+
+for i in range(5):
+    plt.subplot(1,2,1)
+    plt.imshow(torch.squeeze(image[i]).cpu().numpy(),cmap='gray')
+    plt.subplot(1,2,2)
+    plt.imshow(out_img[i].numpy(),cmap='gray')
+    plt.show()
+
+
+
+    # Denoising AE, 디노이징 오토인코더
+ - 입력으로 들어오는 이미지에 특정 노이즈를 추가한 손상된 데이터를 넣어서,
+   노이즈를 제거하는 것도 가능합니다.
+   예를 들어 가우시안 노이즈를 데이터에 추가하고 모델을 통과한 결괏값이
+   노이즈 없는 깨끗한 데이터로 복원될 수 있다면, 그냥 압축하는 모델이 아니라
+   노이즈도 제거하는 모델 또한 만들 수 있습니다.
+
+noise = init.normal_(torch.FloatTensor(batch_size, 1, 28, 28), 0, 0.1) # MNIST 예제
+noise_image = image + noise
+
+
+
+
+    # U-Net
+ - 전체적으로 합성곱 오토인코더의 형태를 따르고 있는 걸 알 수 있으나
+   기존의 오토인코더 모델과 다른 점은 회색 화살표로 표시된 copy and crop 연산이라고 할 수 있습니다.
+ - 이런 방식을 스킵 커넥션(skip connection)이라고 하는데 앞에서 배운 ResNet 모델에서는 이를 텐서 간의 합으로 사용했고,
+   U-Net에서는 합 대신 텐서 간의 연결(concatenation)로 사용했습니다. -> DenseNet 느낌
+ - 오토인코더에서는 입력 이미지가 압축되다 보면 위치 정보가 어느정도 손실되게 됩니다.
+   그렇게 되면 다시 원본 이미지 크기로 복원하는 과정에서 정보의 부족 때문에
+   원래 물체가 있었던 위치에서 어느 정도 이동이 일어나게 됩니다.
+   이런 복원 과정에 스킵 커넥션을 사용하게 되면 원본 이미지의 위치 정보를 추가적으로 전달받는 셈이 되므로
+   비교적으로 정확한 위치를 복원할 수 있게 되고 따라서 분할 결과도 좋아지게 됩니다.
+ - U-Net은 세그멘테이션 모델이나 이미지 간 이전 모델에서 가장 기본이 되는 형태이고,
+   합성곱 연산에 ResNet의 스킵 커넥션을 추가한 FusionNet같은 모델도 있습니다.
+
+# U-Net Architecture
+![대체 텍스트](https://lmb.informatik.uni-freiburg.de/people/ronneber/u-net/u-net-architecture.png)
+
+# 자주 쓰는 연산들과 항상 세트로 쓰는 연산들은 편의를 위해 함수로 정의해 놓습니다.
+def conv_block(in_dim,out_dim,act_fn):
+    model = nn.Sequential(
+        nn.Conv2d(in_dim,out_dim, kernel_size=3, stride=1, padding=1),
+        nn.BatchNorm2d(out_dim),
+        act_fn,
+    )
+    return model
+
+def conv_trans_block(in_dim,out_dim,act_fn):
+    model = nn.Sequential(
+        nn.ConvTranspose2d(in_dim,out_dim, kernel_size=3, stride=2, padding=1,output_padding=1),
+        nn.BatchNorm2d(out_dim),
+        act_fn,
+    )
+    return model
+
+def maxpool():
+    pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+    return pool
+
+def conv_block_2(in_dim,out_dim,act_fn):
+    model = nn.Sequential(
+        conv_block(in_dim,out_dim,act_fn),
+        nn.Conv2d(out_dim,out_dim, kernel_size=3, stride=1, padding=1),
+        nn.BatchNorm2d(out_dim),
+    )
+    return model
+
+class UnetGenerator(nn.Module):
+    def __init__(self,in_dim,out_dim,num_filter):
+        super(UnetGenerator,self).__init__()
+        self.in_dim = in_dim
+        self.out_dim = out_dim
+        self.num_filter = num_filter
+        act_fn = nn.LeakyReLU(0.2, inplace=True)
+
+        print("\n------Initiating U-Net------\n")
+
+        self.down_1 = conv_block_2(self.in_dim,self.num_filter,act_fn)
+        self.pool_1 = maxpool()
+        self.down_2 = conv_block_2(self.num_filter*1,self.num_filter*2,act_fn)
+        self.pool_2 = maxpool()
+        self.down_3 = conv_block_2(self.num_filter*2,self.num_filter*4,act_fn)
+        self.pool_3 = maxpool()
+        self.down_4 = conv_block_2(self.num_filter*4,self.num_filter*8,act_fn)
+        self.pool_4 = maxpool()
+
+        self.bridge = conv_block_2(self.num_filter*8,self.num_filter*16,act_fn)
+
+        self.trans_1 = conv_trans_block(self.num_filter*16,self.num_filter*8,act_fn)
+        self.up_1 = conv_block_2(self.num_filter*16,self.num_filter*8,act_fn)
+        self.trans_2 = conv_trans_block(self.num_filter*8,self.num_filter*4,act_fn)
+        self.up_2 = conv_block_2(self.num_filter*8,self.num_filter*4,act_fn)
+        self.trans_3 = conv_trans_block(self.num_filter*4,self.num_filter*2,act_fn)
+        self.up_3 = conv_block_2(self.num_filter*4,self.num_filter*2,act_fn)
+        self.trans_4 = conv_trans_block(self.num_filter*2,self.num_filter*1,act_fn)
+        self.up_4 = conv_block_2(self.num_filter*2,self.num_filter*1,act_fn)
+
+        self.out = nn.Sequential(
+            nn.Conv2d(self.num_filter,self.out_dim,3,1,1),
+            nn.Tanh(),  #필수는 아님
+        )
+
+    def forward(self,input):
+        down_1 = self.down_1(input)
+        pool_1 = self.pool_1(down_1)
+        down_2 = self.down_2(pool_1)
+        pool_2 = self.pool_2(down_2)
+        down_3 = self.down_3(pool_2)
+        pool_3 = self.pool_3(down_3)
+        down_4 = self.down_4(pool_3)
+        pool_4 = self.pool_4(down_4)
+
+        bridge = self.bridge(pool_4)
+
+        trans_1 = self.trans_1(bridge)
+        concat_1 = torch.cat([trans_1,down_4],dim=1)
+        up_1 = self.up_1(concat_1)
+        trans_2 = self.trans_2(up_1)
+        concat_2 = torch.cat([trans_2,down_3],dim=1)
+        up_2 = self.up_2(concat_2)
+        trans_3 = self.trans_3(up_2)
+        concat_3 = torch.cat([trans_3,down_2],dim=1)
+        up_3 = self.up_3(concat_3)
+        trans_4 = self.trans_4(up_3)
+        concat_4 = torch.cat([trans_4,down_1],dim=1)
+        up_4 = self.up_4(concat_4)
+        out = self.out(up_4)
+        return out
+
+batch_size = 16
+img_size = 256
+in_dim = 1
+out_dim = 3
+num_filters = 16
+
+sample_input = torch.ones(size=(batch_size,1,img_size,img_size))
+
+model = UnetGenerator(in_dim=in_dim,out_dim=out_dim,num_filter=num_filters)
+output = model(sample_input)
+print(output.size())
+
 
 
 
@@ -3098,7 +3472,170 @@ for Epoch in range(1, EPOCHS + 1):
 ---------- GAN ----------
 
 
+    # GAN (Generative Adversarial Network) 생성적 적대 신경망
+ - Generative(생성적): 생성 모델은 데이터 자체를 만들어내기 때문에 특성을 뽑아내는
+   모델보다 더 어려운 작업을 수행하는 것이고 따라서 학습도 좀 더 어렵습니다.
+   이러한 생성 모델의 대표적인 사례가 바로 GAN과 변분 오토인코더입니다.
+ - Adversarial(적대적): GAN에서는 생성 네트워크와 구분 네트워크 간의
+   상반되는 목적 함수(objective function)로 인해 적대성이 생기게 됩니다.
+   많이 드는 예시로 위조지폐를 만드는 사람(생성 네트워크)과 위조지폐 감별사(구분 네트워크)가 있습니다.
+ - Network(네트워크): 네트워크는 우리가 딥러닝에서 흔히 사용하는 의미대로,
+   신경망의 형태를 가진 다양한 네트워크를 의미합니다.
+   GAN에서 생성자와 구분자의 구조가 인공 신경망의 형태를 이룹니다.
 
+ - 생성자: 생성자는 어떠한 입력 z를 받아서 가짜fake 데이터를 생성합니다.
+ - 구분자: 구분자는 실제 데이터와 가짜 데이터를 받아서 각각 실제인지 아닌지 구분하게 됩니다.
+
+
+    # GAN FLOW (MNIST Example)
+ - 먼저 생성자는 노이즈를 z로 받습니다. 특별한 조건 없이 이미지를 생성해야 하기 때문에
+   랜덤한 노이즈를 사용한다고 보면 되며, 표준정규분포(N(0,1))를 따르는 데이터면 충분합니다.
+   z 벡터의 길이는 생성하는 데이터의 종류마다 다르지만 MNIST의 경우는 50정도면 충분하다고 알려져 있습니다.
+   이러한 z가 입력으로 들어오면 생성자는 신경망이나 합성곱 신경망을 통해서 MNIST 데이터와 같은 형태의 데이터를 생성해냅니다.
+ - 구분자는 MNIST 형태의 데이터를 입력으로 받아서 하나의 결괏값을 내는 네트워크입니다.
+   구분자에는 실제 데이터가 들어가기도 하고 생성자에서 만들어진 데이터가 들어가기도 합니다.
+   당연히 구분자는 실제 데이터가 들어오면 실제라고 구분해야 하고 가짜 데이터가 들어오면 가짜라고 구분해야 합니다.
+ - <구분자 입장>에서 실제 데이터는 1에, 가짜 데이터는 0에 가깝게 나오도록 학습되지만
+   <생성자 입장>에서는 생성한 가짜 데이터가 1에 가깝게 나오는 것이 목표이기 때문에
+   가짜 데이터의 구분에 대해 서로 경쟁을 하게 됩니다.
+
+
+    # GAN 목적함수
+목적 함수: minGmaxD V(D,G)= {log(D(x))+log(1−D(G(z)))}
+ - <구분자 입장>에서는 이 값을 최대화해야 하는데,
+   D(x)는 1, D(G(z))는 0이 되어야 합니다.
+   실제 데이터는 구분자를 통과했을 때 1, 생성된 가짜 데이터는 0으로 판단되어야 한다는 것과 일치합니다.
+ - <생성자 입장>에서는 이 값을 최소화해야 하는데,
+   그러려면 생성자가 관여하는 log(1−D(G(z)))에서
+   1−D(G(z))가 0이 되어야 하고 이는 D(G(z))가 1이어야 한다는 것과 같습니다.
+   이 부분은 구분자의 목적과 정확히 반대이고 여기서 적대성이 발생하게 됩니다.
+ - 구분자, 생성자 모두 손실함수로 BCELoss()를,
+   라벨은 실제 데이터에 대한 라벨1로 계산합니다.
+   처음 GAN은 이진 교차 엔트로피 손실 함수를 사용했지만 LSGAN(least squares GAN) 등에서
+   L2함수를 사용하여 더 안정적인 학습을 달성했으므로, 이 책에서도 L2 손실 함수를 사용하겠습니다.
+
+
+    # Generator receives random noise z and create 1x28x28 image
+class Generator(nn.Module):
+    def __init__(self):
+        super(Generator,self).__init__()
+        self.layer1 = nn.Sequential(OrderedDict([ # orderdDict 자료형은 순서를 기억하지 못하는 일반 딕셔너리와 다르게
+                                                  # 순서가 지정되는 딕셔너리 입니다. 이를 이용해 레이어 순서에 따라 이름을 지정했습니다.
+                        ('fc1',nn.Linear(z_size,middle_size)),
+                        ('bn1',nn.BatchNorm1d(middle_size)),
+                        ('act1',nn.ReLU()),
+        ]))
+        self.layer2 = nn.Sequential(OrderedDict([
+                        ('fc2', nn.Linear(middle_size,784)),
+                        #('bn2', nn.BatchNorm1d(784)),
+                        ('tanh', nn.Tanh()),
+        ]))
+    def forward(self,z):
+        out = self.layer1(z)
+        out = self.layer2(out)
+        out = out.view(batch_size,1,28,28)
+        return out
+
+    # Discriminator receives 1x28x28 image and returns a float number 0~1
+class Discriminator(nn.Module):
+    def __init__(self):
+        super(Discriminator,self).__init__()
+        self.layer1 = nn.Sequential(OrderedDict([
+                        ('fc1',nn.Linear(784,middle_size)),
+                        #('bn1',nn.BatchNorm1d(middle_size)),
+                        ('act1',nn.LeakyReLU()),
+
+        ]))
+        self.layer2 = nn.Sequential(OrderedDict([
+                        ('fc2', nn.Linear(middle_size,1)),
+                        ('bn2', nn.BatchNorm1d(1)),
+                        ('act2', nn.Sigmoid()), # 0에서 1 사이의 값으로 만들기 위해 마지막 층에는 시그모이드 함수가 들어가 있습니다.
+        ]))
+
+    def forward(self,x):
+        out = x.view(batch_size, -1)
+        out = self.layer1(out)
+        out = self.layer2(out)
+        return out
+
+# Put class objects on Multiple GPUs using
+# torch.nn.DataParallel(module, device_ids=None, output_device=None, dim=0)
+# device_ids: default all devices / output_device: default device 0
+# along with .cuda()
+
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+print(device)
+
+generator = nn.DataParallel(Generator()).to(device)
+discriminator = nn.DataParallel(Discriminator()).to(device)
+
+# Get parameter list by using class.state_dict().keys()
+gen_params = generator.state_dict().keys()
+dis_params = discriminator.state_dict().keys()
+for i in gen_params:
+    print(i)
+
+# loss function, optimizers, and labels for training
+loss_func = nn.MSELoss()
+gen_optim = torch.optim.Adam(generator.parameters(), lr=learning_rate,betas=(0.5,0.999))
+dis_optim = torch.optim.Adam(discriminator.parameters(), lr=learning_rate,betas=(0.5,0.999))
+
+ones_label = torch.ones(batch_size,1).to(device)
+zeros_label = torch.zeros(batch_size,1).to(device)
+
+
+# train
+for i in range(epoch):
+    for j,(image,label) in enumerate(train_loader):
+        image = image.to(device)
+        # ----------- 구분자 학습
+        dis_optim.zero_grad()
+        # Fake Data
+        # 랜덤한 z를 샘플링해줍니다.
+        z = init.normal_(torch.Tensor(batch_size,z_size),mean=0,std=0.1).to(device)
+        gen_fake = generator.forward(z) # 가짜 데이터 생성
+        dis_fake = discriminator.forward(gen_fake)
+        # Real Data
+        dis_real = discriminator.forward(image)
+        # 두 손실을 더해 최종손실에 대해 기울기 게산을 합니다.
+        dis_loss = torch.sum(loss_func(dis_fake,zeros_label)) + torch.sum(loss_func(dis_real,ones_label))
+        dis_loss.backward(retain_graph=True)
+        dis_optim.step()
+
+        # ----------- 생성자 학습
+        gen_optim.zero_grad()
+        # Fake Data
+        z = init.normal_(torch.Tensor(batch_size,z_size),mean=0,std=0.1).to(device)
+        gen_fake = generator.forward(z)
+        dis_fake = discriminator.forward(gen_fake)
+
+        gen_loss = torch.sum(loss_func(dis_fake,ones_label)) # fake classified as real
+        gen_loss.backward()
+        gen_optim.step()
+
+        # model save
+        if j % 100 == 0:
+            print(gen_loss,dis_loss)
+            torch.save([generator,discriminator],'./model/vanilla_gan.pkl')
+            v_utils.save_image(gen_fake.cpu().data[0:25],"./result/gen_{}_{}.png".format(i,j), nrow=5)
+            print("{}th epoch gen_loss: {} dis_loss: {}".format(i,gen_loss.data,dis_loss.data))
+
+
+
+    # DCGAN (deep convolutional GAN)
+ - DCGAN은 GAN에 합성곱 연산을 적용한 것입니다.
+   합성곱 신경망과 비지도학습의 한 종류인 GAN을 결합한 논문이자,
+   모델이 그냥 결과를 생성하는 것이 아니라 어떤 의미를 가지는 특성(또는 표현)을 학습하여
+   생성할 수 있다는 것을 보여주었습니다. DCGAN의 생성자 네트워크는 전치 합성곱 연산을 통해
+   랜덤 노이즈로부터 데이터를 생성해냅니다. 구분자 네트워크 역시 합성곱 연산으로 이루어져 있습니다.
+   모델이 데이터를 외운것이 아니라 어떤 특성들을 학습했다는 점이 중요합니다.
+
+    # 어떻게 학습시키면 DCGAN 학습이 잘되는지
+  - 풀링 연산을 합성곱 연산으로 대체하고 생성자 네트워크는 전치 합성곱 연산을 사용한다.
+  - 생성자와 구분자에 배치 정규화를 사용한다.
+  - 완전연결 네트워크를 사용하지 않는다.
+  - 생성자 네트워크에는 마지막에 사용되는 하이퍼볼릭 탄젠트 함수 외에는 모든 활성화 함수에 렐루를 사용한다.
+  - 구분자 네트워크의 모든 활성화 함수로는 리키렐루를 사용한다.
 
 
 
@@ -3412,6 +3949,32 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
     º nn.AdaptiveLogSoftmaxWithLoss
 # 본문: https://greeksharifa.github.io/pytorch/2018/11/10/pytorch-usage-03-How-to-Use-PyTorch/
 # 참조: https://pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity
+
+
+    # Mish activation function
+class MishFunction(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, x):
+        ctx.save_for_backward(x)
+        return x * torch.tanh(F.softplus(x))   # x * tanh(ln(1 + exp(x)))
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        x = ctx.saved_variables[0]
+        sigmoid = torch.sigmoid(x)
+        tanh_sp = torch.tanh(F.softplus(x))
+        return grad_output * (tanh_sp + x * sigmoid * (1 - tanh_sp * tanh_sp))
+
+class Mish(nn.Module):
+    def forward(self, x):
+        return MishFunction.apply(x)
+
+def to_Mish(model):
+    for child_name, child in model.named_children():
+        if isinstance(child, nn.ReLU):
+            setattr(model, child_name, Mish())
+        else:
+            to_Mish(child)
 
 
 
@@ -3993,6 +4556,9 @@ Nadam: Adam에 Momemtum 대신 NAG를 붙이자.
  - 2. 최적화함수에 가중치부식 인수를 주기
  - 3. 드랍아웃 적용
  - 4. 모델의 수용력 줄이기
+ - 5. 데이터 늘리기 (노이즈 증식, 또는 아에 늘리기)
+ - 6. 정규화 (Data normalization, BatchNormalization)
+ - 7. Early Stopping
 
 
 기울시 소실이나 과다가 일어날 경우
@@ -4022,6 +4588,12 @@ Nadam: Adam에 Momemtum 대신 NAG를 붙이자.
 
 
 ---------- 혼합아이디어 ----------
+
+
+ - PCA와 유사한 역할을 하는 AE,
+   데이터를 학습한 AE의 Encoder를 통과한 z를 feature로써 사용하여 ML/DL에 넣어주어 학습한다
+
+
 
 
 
@@ -4102,6 +4674,17 @@ STL10, SVHN, PhotoTour, SBU
     º nn.EmbeddingBag
 # 본문: https://greeksharifa.github.io/pytorch/2018/11/10/pytorch-usage-03-How-to-Use-PyTorch/
 # 참조: https://pytorch.org/docs/stable/nn.html#module
+
+
+
+    # GlabalAveragePoolin
+ - AdaptiveAvgPool2d을 Tensorflow의 GlobalAveragePooling2D처럼 활용하기 위해서는
+   output_size 인자로 1을 넣으면 된다.
+    # AdaptiveAvgPool2d - Ex 1
+torch.nn.AdaptiveAvgPool2d(1)
+ - 이때 Global Average Pooling Layer는 각 Feature Map 상의 노드값들의
+   평균을 뽑아낸다. 이런 방식으로 Global Average Pooling Layer는
+   레이어 집합을 인풋으로 하여 벡터를 아웃풋으로 낸다.
 
 
 
