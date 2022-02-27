@@ -141,9 +141,80 @@ assert 조건, '메시지'
 
 
 
-	# 문제 풀이시 참고사항
-# len(s)==4 or len(s)==6
-#  -> 이런건 len(s) in (4,6) 으로.
+    # iter, next
+ - iter는 객체의 __iter__ 메서드를 호출해주고,
+   next는 객체의 __next__ 메서드를 호출해줍니다.
+
+it = iter(range(3))
+next(it) # -> 0
+next(it) # -> 1
+next(it) # -> 2
+next(it) # -> StopIteration
+
+ - 반복 가능한 객체에서 __iter__를 호출하고
+   이터레이터에서 __next__ 메서드를 호출한 것과 똑같습니다.
+   즉, iter는 반복 가능한 객체에서 이터레이터를 반환하고,
+   next는 이터레이터에서 값을 차례대로 꺼냅니다.
+   iter와 next는 이런 기능 이외에도 다양한 방식으로 사용할 수 있습니다.
+
+# iter
+ - iter는 반복을 끝낼 값을 지정하면 특정 값이 나올 때 반복을 끝냅니다.
+   이 경우에는 반복 가능한 객체 대신 호출 가능한 객체(callable)를 넣어줍니다.
+   참고로 반복을 끝낼 값은 sentinel이라고 부르는데 감시병이라는 뜻입니다.
+   즉, 반복을 감시하다가 특정 값이 나오면 반복을 끝낸다고 해서 sentinel입니다.
+ - iter(호출가능한객체, 반복을끝낼값)
+   예를 들어 random.randint(0, 5)와 같이 0부터 5까지 무작위로 숫자를 생성할 때 2가 나오면 반복을 끝내도록 만들 수 있습니다.
+   이때 호출 가능한 객체를 넣어야 하므로 매개변수가 없는 함수 또는 람다 표현식으로 만들어줍니다.
+
+import random
+it = iter(lambda : random.randint(0, 5), 2)
+next(it) # -> 0
+next(it) # -> 3
+next(it) # -> 1
+next(it) # -> 2가 나와서 StopIteration
+
+ - next(it)로 숫자를 계속 만들다가 2가 나오면 StopIteration이 발생합니다.
+   물론 숫자가 무작위로 생성되므로 next(it)를 호출하는 횟수도 매번 달라집니다.
+   물론 다음과 같이 for 반복문에 넣어서 사용할 수도 있습니다.
+import random
+for i in iter(lambda : random.randint(0, 5), 2):
+    print(i, end=' ')
+3 1 4 0 5 3 3 5 0 4 1
+
+이렇게 iter 함수를 활용하면 if 조건문으로 매번 숫자가 2인지 검사하지 않아도 되므로 코드가 좀 더 간단해집니다.
+즉, 다음 코드와 동작이 같습니다.
+
+import random
+while True:
+    i = random.randint(0, 5)
+    if i == 2:
+        break
+    print(i, end=' ')
+
+
+    # next
+ - next는 기본값을 지정할 수 있습니다.
+  기본값을 지정하면 반복이 끝나더라도 StopIteration이 발생하지 않고 기본값을 출력합니다.
+  즉, 반복할 수 있을 때는 해당 값을 출력하고, 반복이 끝났을 때는 기본값을 출력합니다.
+  다음은 range(3)으로 0, 1, 2 세 번 반복하는데 next에 기본값으로 10을 지정했습니다.
+ - next(반복가능한객체, 기본값)
+
+it = iter(range(3))
+next(it, 10)
+0
+next(it, 10)
+1
+next(it, 10)
+2
+next(it, 10)
+10
+next(it, 10)
+10
+0, 1, 2까지 나온 뒤에도 next(it, 10)을 호출하면 예외가 발생하지 않고 계속 10이 나옵니다.
+
+
+
+
 
 
 

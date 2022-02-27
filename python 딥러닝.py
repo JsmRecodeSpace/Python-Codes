@@ -8,6 +8,8 @@
 * RNN
 * AE
 * GAN
+* Object Detection
+* Style Transfer
 * Import codes
 * 딥러닝의 발전을 이끈 알고리즘들
 * 공부하며 떠오른 것들
@@ -905,50 +907,13 @@ print(loss)
 
 
 
-
-    # torchvision.models의 모델을 사용하는 방법
-# torchvision.models에서는 미리 정의되어 있는 모델들을 사용할 수 있다.
-# torchvision.models 참조: https://pytorch.org/docs/stable/torchvision/models.html
- - 이 모델들은 그 구조뿐 아니라 pretrained=True 인자를 넘김으로써 pretrained weights를 가져올 수도 있다.
-    º AlexNet
-    º VGG-11, VGG-13, VGG-16, VGG-19
-    º VGG-11, VGG-13, VGG-16, VGG-19 (with batch normalization)
-    º ResNet-18, ResNet-34, ResNet-50, ResNet-101, ResNet-152
-    º SqueezeNet 1.0, SqueezeNet 1.1
-    º Densenet-121, Densenet-169, Densenet-201, Densenet-161
-    º Inception v3
-
- - 모델에 따라 train mode와 eval mode가 정해진 경우가 있으므로 이는 주의해서 사용하도록 한다.
-   모든 pretrained model을 쓸 때 이미지 데이터는 [3, W, H] 형식이어야 하고, W, H는 224 이상이어야 한다.
-   또 아래 코드처럼 정규화된 이미지 데이터로 학습된 것이기 때문에, 이 모델들을 사용할 때에는 데이터셋을 이와 같이 정규화시켜주어야 한다.
-   transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-   사용법은 대략 다음과 같다. 사실 이게 거의 끝이고, 나머지는 다른 일반 모델처럼 사용하면 된다.
-
-# torchvision.models - Ex 1
-import torchvision.models as models
-# model load
-alexnet = models.alexnet()
-vgg16 = models.vgg16()
-vgg16_bn = models.vgg16_bn()
-resnet18 = models.resnet18()
-squeezenet = models.squeezenet1_0()
-densenet = models.densenet161()
-inception = models.inception_v3()
-
-    # pretrained model - Ex 1
-resnet18 = models.resnet18(pretrained=True)
-vgg16 = models.vgg16(pretrained=True)
-...
-
-    # pretrained model - Ex 2
-model = models.resnet34(pretrained = False)
-num_ftrs = model.fc.in_features
-model.fc = nn.Linear(num_ftrs, 10)
-model = model.cuda()
-
-
-
-
+    # model.train() 과 model.eval()
+ - 모델을 학습 상태와 테스트 상태로 조정하는 기능은 torch.nn.Module에 Module.train() 및 Module.eval()이라는 이름으로 구현되어 있음.
+   학습할 때는 기본 모드인 train()으로 해놓고 학습하고,
+   테스트할 때는 eval()을 사용함.
+ - 테스트할 때 eval(): 드롭아웃 모드를 바꿔줄 수 있음,
+	배치정규화시 학습때 배치 단위의 평균과 분산들을 차례대로 받아 저장해놓았다가
+    테스트할 때는 해당 배치의 평균과 분산을 구하지 않고 구해놓았던 평균과 분산으로 정규화를 함
 
 
     # Train Model
@@ -1216,25 +1181,6 @@ test(model, optimizer, x_test, y_test)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     # with torch.no_grad()
  - with torch.no_grad(): 범위 안에서는 gradient 계산을 하지 않는다.
    with torch.no_grad() 안에서 선언된 with torch.enable_grad():
@@ -1266,6 +1212,127 @@ OUTPUT_SIZE: 최종으로 출력되는 값의 벡터의 크기를 의미,
 
 
 
+    # 학습 후 모델 변수 값 확인
+# 현재 모델은 weight와 bias을 변수로 가지고 있는데 그 값들이 학습 후 실제 몇인지 수치적으로 확인해봅니다.
+param_list = list(model.parameters())
+print("Weight:",param_list[0].item(),"\nBias:  ",param_list[1].item())
+
+    # 학습된 모델의 결과값과 실제 목표값의 비교
+plt.figure(figsize=(10,10))
+plt.scatter(x.detach().numpy(),y_noise,label="Original Data")
+plt.scatter(x.detach().numpy(),output.detach().numpy(),label="Model Output")
+plt.legend()
+plt.show()
+# 중간에 꺾인 부분은 렐루 함수의 영향입니다.
+# 은닉층은 해당 층의 입력값에 가중치를 곱해줌으로써 선형변환이 일어나도록 하고
+# 렐루 활성화 함수는 이 중 0보다 작은 값들을 모두 0으로 만들기 때문에
+# 여러 은닉층을 통과하면서 여러 지점에서 꺾인 모양이 나타나게 됩니다.
+
+
+
+
+    # torchvision.models의 모델을 사용하는 방법
+# torchvision.models에서는 미리 정의되어 있는 모델들을 사용할 수 있다.
+# torchvision.models 참조: https://pytorch.org/docs/stable/torchvision/models.html
+ - 이 모델들은 그 구조뿐 아니라 pretrained=True 인자를 넘김으로써 pretrained weights를 가져올 수도 있다.
+    º AlexNet
+    º VGG-11, VGG-13, VGG-16, VGG-19
+    º VGG-11, VGG-13, VGG-16, VGG-19 (with batch normalization)
+    º ResNet-18, ResNet-34, ResNet-50, ResNet-101, ResNet-152
+    º SqueezeNet 1.0, SqueezeNet 1.1
+    º Densenet-121, Densenet-169, Densenet-201, Densenet-161
+    º Inception v3
+
+ - 모델에 따라 train mode와 eval mode가 정해진 경우가 있으므로 이는 주의해서 사용하도록 한다.
+   모든 pretrained model을 쓸 때 이미지 데이터는 [3, W, H] 형식이어야 하고, W, H는 224 이상이어야 한다.
+   또 아래 코드처럼 정규화된 이미지 데이터로 학습된 것이기 때문에, 이 모델들을 사용할 때에는 데이터셋을 이와 같이 정규화시켜주어야 한다.
+   transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+   사용법은 대략 다음과 같다. 사실 이게 거의 끝이고, 나머지는 다른 일반 모델처럼 사용하면 된다.
+
+# torchvision.models - Ex 1
+import torchvision.models as models
+# model load
+alexnet = models.alexnet()
+vgg16 = models.vgg16()
+vgg16_bn = models.vgg16_bn()
+resnet18 = models.resnet18()
+squeezenet = models.squeezenet1_0()
+densenet = models.densenet161()
+inception = models.inception_v3()
+
+    # pretrained model - Ex 1
+resnet18 = models.resnet18(pretrained=True)
+vgg16 = models.vgg16(pretrained=True)
+...
+
+    # pretrained model - Ex 2
+model = models.resnet34(pretrained = False)
+num_ftrs = model.fc.in_features
+model.fc = nn.Linear(num_ftrs, 10)
+model = model.cuda()
+
+
+
+    # transfer learning 전이학습
+- 전이학습은 특정 조건에서 얻어진 어떤 지식을 다른 상황에 맞게 말 그래도 '전이'해서 활용하는 학습 방법입니다.
+- 이때 전이되는 것은 범용적인 형태를 구분할 수 있는 지식, 즉 학습한 필터가 될 것입니다.
+장점
+ 1. 데이터 부족을 어느 정도 해결
+ 2. 학습에 걸리는 시간이 줄어듬
+ 3. 시뮬레이션에서 학습된 모델을 현실에 적용할 수 있게 해줌
+
+- pretrained = False로 하면 모델 변수는 학습된 변수 대신 무작위 값으로 초기화됨.
+
+    # transfer learning - Ex 1 Resnet
+ - 이미지넷으로 이미 학습된 모델의 앞부분을 사용합니다 (Pretrained ResNet-50)
+ - 또한 해당 모델을 다른 데이터셋에 적용합니다.
+ - 다른 데이터셋에 적용하기 위해 모델의 뒷단을 새롭게 만듭니다. (Add fully connected layer )
+import torchvision.models as models
+resnet50 = models.resnet50(pretrained=True)
+for name,module in resnet.named_children():
+    print(name)
+
+ - 커스텀 레즈넷을 새로 정의하되 layer0는 이미 학습된 모델의 파라미터를 가져오고
+ - layer1는 새롭게 만들어서 이 부분을 학습합니다.
+class Resnet(nn.Module):
+    def __init__(self):
+        super(Resnet,self).__init__()
+        self.layer0 = nn.Sequential(*list(resnet50.children())[0:-1])
+        self.layer1 = nn.Sequential(
+            nn.Linear(2048,500),
+            nn.BatchNorm1d(500),
+            nn.ReLU(),
+            nn.Linear(500,num_category),
+            nn.ReLU()
+        )
+
+    def forward(self,x):
+        out = self.layer0(x)
+        out = out.view(batch_size,-1)
+        out= self.layer1(out)
+        return out
+
+# Module on GPU
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print(device)
+model = Resnet().to(device)
+# 모델의 layer0의 파라미터들은 학습이 되지 않도록 기울기 계산을 꺼둡니다.
+for params in model.layer0.parameters():
+    params.require_grad = False
+# layer1의 파라미터들은 학습되도록 기울기 계산을 켜둡니다.
+for params in model.layer1.parameters():
+    params.requires_grad = True
+# 모델을 한번 확인합니다
+for m in model.children():
+    print(m)
+
+# summary
+import torchsummary
+from torchsummary import summary
+summary(resnet50, input_size=(3, 224, 224))
+
+
+
 
     # Save & Load model
  - 모델을 저장하는 방법은 여러 가지가 있지만, pytorch를 사용할 때는 다음 방법이 가장 권장된다.
@@ -1275,6 +1342,8 @@ OUTPUT_SIZE: 최종으로 출력되는 값의 벡터의 크기를 의미,
       모델의 모든 상태(parameter, running averages 등 buffer)를 딕셔너리 형태로 반환한다. ,
     - load_state_dict(state_dict, strict=True)
       parameter와 buffer 등 모델의 상태를 현 모델로 복사한다. strict=True이면 모든 module의 이름이 정확히 같아야 한다.
+ - torch.save & torch.load
+   내부적으로 pickle을 사용하며, 따라서 모델뿐 아니라 일반 tensor, 기타 다른 모든 python 객체를 저장할 수 있다.
 
     # Save Ex - 1:
 torch.save(model.state_dict(), PATH)
@@ -1284,6 +1353,39 @@ model = TheModelClass(*args, **kwargs)
  ex: new_net = CNN().to(device)
 model.load_state_dict(torch.load(PATH))
  ex: new_net.load_state_dict(torch.load('../model/model.pth'))
+
+
+    # Save Ex - 2:
+ - epoch별로 checkpoint를 쓰면서 저장할 때는 다음과 같이 혹은 비슷하게 쓰면 좋다.
+   checkpoint를 쓸 때는 단순히 모델의 parameter뿐만 아니라 epoch, loss, optimizer 등을 저장할 필요가 있다.
+torch.save({
+            'epoch': epoch,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'loss': loss,
+            ...
+            }, PATH)
+    # Load Ex - 2
+model = TheModelClass(*args, **kwargs)
+optimizer = TheOptimizerClass(*args, **kwargs)
+
+checkpoint = torch.load(PATH)
+model.load_state_dict(checkpoint['model_state_dict'])
+optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+epoch = checkpoint['epoch']
+loss = checkpoint['loss']
+# model.train() or model.eval()
+
+
+    # Save - Ex 3
+ - 모델을 저장하려면 torch.save 함수를 이용한다. 저장할 모델은 대개 .pt 확장자를 사용한다
+ torch.save(obj=model, f='02_Linear_Regression_Model.pt')
+   참고: .pt 파일로 저장한 PyTorch 모델을 load해서 사용하려면 다음과 같이 한다. 이는 나중에 Transfer Learning과 함께 자세히 다루도록 하겠다.
+    # Load - Ex 3
+loaded_model = torch.load(f='02_Linear_Regression_Model.pt')
+display_results(loaded_model, x, y)
+# 전체 코드: https://github.com/greeksharifa/Tutorial.code/blob/master/Python/PyTorch_Usage/02_Linear_Regression_Model/main.py
+
 
 
 
@@ -1432,6 +1534,43 @@ def test():
 
 
 ---------- CNN ----------
+
+
+     # Cnn Basic
+# Convolution?
+ - 이미지 위에서 stride 값 만큼 filter(kernel)을 이동시키면서
+   겹쳐지는 부분의 각 원소의 값을 곱해서 모두 더한 값으로 출력으로 하는 연산
+# Stride and Padding
+ - stride: filter를 한번에 얼마나 이동 할 것인가
+ - padding: zero-padding
+# 입력의 형태
+- input type: torch.Tensor
+- input shape: (N x C x H x W)
+               (batch_size, channel, height, width)
+
+# Convolution의 output 크기
+ - output size = (input size - filter size + (2 * padding)) / Stride + 1
+
+# Conv2d 구조
+nn.Conv2d(in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=True, padding_mode='zeros',)
+- https://pytorch.org/docs/stable/nn.html?highlight=conv2d#torch.nn.Conv2d
+- in_channels: 입력의 채널 수
+- out_channels: 출력의 채널 수
+- kernel_size: 필터 혹은 커널의 크기
+- stride: 필터 적용의 간격 (stride: 걸음걸이)
+- padding: 입력 데이터를 추가적으로 둘러싸는 층의 두께
+- dilation: 책에서 다루지 않고 넘어간 내용이라 링크로 대체합니다. (https://laonple.blog.me/220991967450)
+- groups: 입력을 채널 단위로 몇개의 분리된 그룹으로 볼 것인가
+- bias: 편차의 사용여부
+- padding_mode: 패딩 적용 방식 (ex. zero padding은 0으로 채우는 경우)
+
+# Pooling 구조
+nn.MaxPool2d(kernel_size, stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False,)
+ - 일정 크기의 구간 내에서 가장 큰 값만을 전달하고 다른 정보는 버리는 방법
+ - MaxPool2d에는 stride가 default로 None값이 들어가서 따로 설정을 안해줄 경우 Maxpool2d를 거치면 크기가 반으로 줄게 된다
+nn.AvgPool2d(kernel_size, stride=None, padding=0, ceil_mode=False, count_include_pad=True, divisor_override=None)
+ - 일정 크기의 구간 내의 값들의 평균을 전달하는 방법
+
 
 
 
@@ -2392,6 +2531,10 @@ def fit(model, train_loader, epochs, optimizer, loss_func):
     print('Learning Finished !')
 fit(model, train_loader, epochs, optimizer, loss_func)
 
+# 손실 그래프로 손실이 어떻게 줄어가는지 확인합니다.
+plt.plot(loss_arr)
+plt.show()
+
 
 
     # CNN train, valid - Ex 2
@@ -2699,10 +2842,30 @@ def evaluate(model, test_loader):
 
 ---------- RNN ----------
 
+    # RNN
+ - rnn은 sequential 데이터를 잘 다루기 위해서 도입되었음
+   sequential 데이터는 데이터의 값 뿐만 아니라
+   데이터의 순서도 중요한 의미를 갖는 데이터를 말함.
+   데이터의 순서도 데이터의 일부인 것
+   ex: hello
+
+ - rnn은 hidden state를 통해 이전의 정보를 받아들이고 학습하여 순서를 기억함
+ - 모든 셀은 파라미터를 공유함: 모든 셀이 A 하나임
+ - h_t = f(h_t-1, x_t)
+   셀 A에서 함수 연산이 일어나는데
+   전단계의 히든 스테이트h_t-1와 지금 단계에서의 입력 값(x_t)을 가지고
+   함수 연산을 가지고 h_t를 만듦
+   EX)
+   h_t = tanh(W_h*h_t-1 + W_x * x_t)
+
+ - 특이한 점이 input값인 x뿐만 아니라 h_t-1에도 weight값이 붙어서 학습한다는 점임
+   유명한 설계 방법들은 LSTM과 GRU가 있음
+
+
 
     # torchtext
-# 자연어처리(NLP)를 다룰 때 쓸 수 있는 좋은 라이브러리가 있다.
-# 이는 자연어처리 데이터셋을 다루는 데 있어서 매우 편리한 기능을 제공한다.
+# 자연어처리(NLP)를 다룰 때 쓸 수 있는 좋은 라이브러리
+# 자연어처리 데이터셋을 다루는 데 있어서 매우 편리한 기능을 제공
  º 데이터셋 로드
  º 토큰화(Tokenization)
  º 단어장(Vocabulary) 생성
@@ -2712,18 +2875,146 @@ def evaluate(model, test_loader):
 
 
 
+    # Usages of RNN
+one to one: 일반적인 neural network: 하나의 입력에 하나의 출력이 나옴
+
+one to many: 이미지 데이터 하나가 나오고 출력값으로는 문장이 나온다.
+ - ex: image captioning: image -> sequence of words
+
+many to one: 문장이 입력되고 하나의 값이 나옴
+ - ex: Sentiment Classification: sequence of words ->  sentiment
+
+many to many: 문장이 들어오고 문장이 출력되는 형태
+ -  Machine Translation: sequence of words -> sequence of words
+
+many to many: 여러개의 input이 있고 들어올때마다 새로 output들이 나오는 다른 버전
+ - Video classification on frame level
+
+
+    # RNN applications
+- Language Modeling
+- Speech Recognition
+- Machine Traslation
+- Conversation Modeling / Question Answering
+- Image / Video Captioning
+- Image / Music / Dance Generation
 
 
 
+    # RNN hello - Ex
+input_size = 4  # 4개의 차원을 받는다: h, e, l, o
+hidden_size = 2 # hidden state의 벡터 디멘션을 정의
+                # = 몇 차원의 출력(output)을 원하는지
+                # 즉, output size = hidden size
+
+# 1-hot encoding
+h = [1, 0, 0, 0]
+e = [0, 1, 0, 0]
+l = [0, 0, 1, 0]
+o = [0, 0, 0, 1]
+input_data_np = np.array([[h, e, l, l, o],
+                          [e, o, l, l, l],
+                          [l, l, e, e, l]
+                         ], dtype = np.float32)
+
+input_data = torch.Tensor(input_data_np)
+rnn = torch.nn.RNN(input_size, hidden_size)
+outputs, _status = rnn(input_data)
+
+    # RNN hello - Ex 설명
+input_data.shape  -> (-, -, 4)
+output_data.shape -> (-, -, 2)
+        # Sequence Length
+hello를 예를 들면 sequence length = 5이다.
+이러한 sequence length는 PyTorch에서 자동적으로 계산된다.
+input_data.shape -> (-, 5, 4)  가운데 5가 sequence length이다.
+output_data.shpae -> (-, 5, 2)
+# Batch Size
+여러개의 데이터를 하나의 batch로 묶어서 모델에게 학습시킴
+batch size역시 PyTorch에서 자동으로 파악함
+input_data.shape -> (3, 5, 4)
+output_data.shape -> (3, 5, 2)
+# ----- 따라서 input_data와 hidden_size만 잘 정의하여 주면 된다!!!!
 
 
 
+    # RNN hihello Ex
+# Random seed to make results deterministic and reproducible
+torch.manual_seed(0)
+# declare dictionary
+char_set = ['h', 'i', 'e', 'l', 'o']
+# hyper parameters
+input_size = len(char_set) # 몇 차원의 input을 받을지 -> char_set의 유니크 값의 개수
+hidden_size = len(char_set)
+learning_rate = 0.1
+# data setting
+x_data = [[0, 1, 0, 2, 3, 3]]
+x_one_hot = [[[1, 0, 0, 0, 0],
+              [0, 1, 0, 0, 0],
+              [1, 0, 0, 0, 0],
+              [0, 0, 1, 0, 0],
+              [0, 0, 0, 1, 0],
+              [0, 0, 0, 1, 0]]]
+y_data = [[1, 0, 2, 3, 3, 4]]
+# transform as torch tensor variable
+X = torch.FloatTensor(x_one_hot)
+Y = torch.LongTensor(y_data)
+# declare RNN
+rnn = torch.nn.RNN(input_size, hidden_size, batch_first=True)  # batch_first guarantees the order of output = (B, S, F): batch_size, Sequence_length, Feature
+# loss & optimizer setting
+criterion = torch.nn.CrossEntropyLoss()
+optimizer = optim.Adam(rnn.parameters(), learning_rate)
+# start training
+for i in range(100):
+    optimizer.zero_grad()
+    outputs, _status = rnn(X)
+    loss = criterion(outputs.view(-1, input_size), Y.view(-1))
+    loss.backward()
+    optimizer.step()
+
+    result = outputs.data.numpy().argmax(axis=2)
+    result_str = ''.join([char_set[c] for c in np.squeeze(result)])
+    print(i, "loss: ", loss.item(), "prediction: ", result, "true Y: ", y_data, "prediction str: ", result_str)
 
 
 
+    # RNN charseq Ex
+# Random seed to make results deterministic and reproducible
+torch.manual_seed(0)
+sample = " if you want you"
+# make dictionary
+char_set = list(set(sample))
+char_dic = {c: i for i, c in enumerate(char_set)}
+print(char_dic)
+# hyper parameters
+dic_size = len(char_dic)
+hidden_size = len(char_dic)
+learning_rate = 0.1
+# data setting
+sample_idx = [char_dic[c] for c in sample]  # sample의 글자를 인덱스로 숫자화시킴
+x_data = [sample_idx[:-1]]
+x_one_hot = [np.eye(dic_size)[x] for x in x_data]	 # np.eye(size)으로 size에 해당하는 만큼의 항등벡터를 만듦
+					 # 그 중 1에 해당하는 값을 뒤에 인덱스로 알려주면 해당 인덱스값이 1이고 나머지는 0으로 채워지는 벡터값을 반환해줌
+y_data = [sample_idx[1:]]
+# transform as torch tensor variable
+X = torch.FloatTensor(x_one_hot)
+Y = torch.LongTensor(y_data)
+# declare RNN
+rnn = torch.nn.RNN(dic_size, hidden_size, batch_first=True)
+# loss & optimizer setting
+criterion = torch.nn.CrossEntropyLoss()
+optimizer = optim.Adam(rnn.parameters(), learning_rate)
+# start training
+for i in range(50):
+    optimizer.zero_grad()
+    outputs, _status = rnn(X)
+    loss = criterion(outputs.view(-1, dic_size), Y.view(-1))
+    loss.backward()
+    optimizer.step()
 
-
-
+    result = outputs.data.numpy().argmax(axis=2)
+    result_str = ''.join([char_set[c] for c in np.squeeze(result)])
+    print(i, "loss: ", loss.item(), "prediction: ", result, "true Y: ", y_data, "prediction str: ", result_str)
 
 
 
@@ -2811,7 +3102,217 @@ for Epoch in range(1, EPOCHS + 1):
 
 
 
+---------- Object Detection ----------
 
+
+    # 20년도 까지 나온 OD기법들 나열
+- https://github.com/hoya012/deep_learning_object_detection
+
+
+
+
+---------- Style Transfer ----------
+
+
+    # 스타일 트랜스퍼 style transfer
+ - 스타일 트랜스퍼는 전이학습의 단적인 예라고 할 수 있습니다.
+ - 학습된 필터들의 특성은 바로 범용성(여러 분야나 용도로 널리 쓰일 수 있는 특성)에 있습니다.
+   가로세로 대각선 필터들은 사실 작업 종류와는 관계없이 물체를 인식하는 데 모두 적용될 수 있기 때문에
+   학습된 모델에서 얻은 지식을 다른 작업에 전이할 수 있는 것입니다.
+
+    # 스타일
+ - 논문에서 스타일은 다른 필터 응답들 간의 연관성(correlations between the different filter response)라 서술
+ - 필터 활성도의 그람 행렬로 나타냄.
+ - 그람 행렬은 내적이 정의된 공간에서 벡터 v1, v2, vn,... 이 있을 때 가능한 모든 경우의 내적을 행렬로 나타낸 것
+
+    # 콘텐츠
+ - 스타일과 대비되는 형태를 의미
+ - 더 높은 레이어 내의 특성 응답(feature responses in higher layers of the network)이라 정의.
+ - 특성 응답은 활성화 지도를 의미하고, 더 높은 레이어라 한 것은 모델에서 어느 정도 깊이가 있는 지점을 의미
+
+총 손실은 콘텐츠 손실과 스타일 손실에 각각 가중치 α, β를 곱해서 합한 값이 됨. 왼쪽과 가운데를 비교해서 스타일 손실을 계산하고,
+가운데와 오른쪽을 비교해서 콘텐츠 손실을 계산함.
+스타일 손실은 모든 위치에서 발생하지만 콘텐츠 손실은 conv_4에서만(특정 깊이의 위치) 발생하는 것을 알 수 있습니다.
+스타일 손실을 모든 위치에서 계산하는 이유는 모델의 위치에 따라 수용 영역(receptive field)가 달라지기 때문입니다.
+ -> 좁은 영역의 스타일부터 넓은 영역의 스타일까지 다양하게 보겠다는 의미.
+     좁은 수용 영역에서 뽑은 스타일은 세밀한데 비해, 넓은 수용 영역에서 뽑아낸 스타일은 전체적인 스타일과 가까움.
+논문에서 con_v에서 콘텐츠 손실을 계산한 것은 형태를 보존하면서도 스타일을 잘 입힐 수 있도록 실험을 통해 적절한 위치를 찾은 것으로 보임.
+
+스타일 트랜스퍼를 구현할 때는 2차 미분 값까지 이용한 L-BFGS(limited-memory BFGS) 알고리즘을 사용하는 편
+
+
+## Image Style Transfer ##
+< 목차 >
+1. Settings
+ 1) Import required libraries
+ 2) Hyperparameter
+2. Data
+ 1) Directory
+ 2) Preprocessing Function
+ 3) Postprocessing Function
+3. Model & Loss Function
+ 1) Resnet
+ 2) Delete Fully Connected Layer
+ 3) Gram Matrix Function
+ 4) Model on GPU
+ 5) Gram Matrix Loss
+4. Train
+ 1) Prepare Images
+ 2) Set Targets & Style Weights
+ 3) Train
+5. Check Results
+
+
+# 컨텐츠 손실을 어느 지점에서 맞출것인지 지정해놓습니다.
+content_layer_num = 1
+image_size = 512
+epoch = 5000
+
+content_dir = "./images/content/Tuebingen_Neckarfront.jpg"
+style_dir = "./images/style/1280px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg"
+
+# 이미 학습된 ResNet 모델이 이미지넷으로 학습된 모델이기 때문에 이에 따라 정규화해줍니다.
+def image_preprocess(img_dir):
+    img = Image.open(img_dir)
+    transform = transforms.Compose([
+                    transforms.Resize(image_size),
+                    transforms.CenterCrop(image_size),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.40760392, 0.45795686, 0.48501961],
+                                         std=[1,1,1]),
+                ])
+    img = transform(img).view((-1,3,image_size,image_size))
+    return img
+
+
+# 정규화 된 상태로 연산을 진행하고 다시 이미지화 해서 보기위해 뺐던 값들을 다시 더해줍니다.
+# 또한 이미지가 0에서 1사이의 값을 가지게 해줍니다.
+
+def image_postprocess(tensor):
+    transform = transforms.Normalize(mean=[-0.40760392, -0.45795686, -0.48501961],
+                                     std=[1,1,1])
+    img = transform(tensor.clone())
+    img = img.clamp(0,1)
+    img = torch.transpose(img,0,1)
+    img = torch.transpose(img,1,2)
+    return img
+
+# 미리 학습된 resnet50를 사용합니다.
+resnet = models.resnet50(pretrained=True)
+for name,module in resnet.named_children():
+    print(name)
+
+# 레이어마다 결과값을 가져올 수 있게 forward를 정의합니다.
+
+class Resnet(nn.Module):
+    def __init__(self):
+        super(Resnet,self).__init__()
+        self.layer0 = nn.Sequential(*list(resnet.children())[0:1])
+        self.layer1 = nn.Sequential(*list(resnet.children())[1:4])
+        self.layer2 = nn.Sequential(*list(resnet.children())[4:5])
+        self.layer3 = nn.Sequential(*list(resnet.children())[5:6])
+        self.layer4 = nn.Sequential(*list(resnet.children())[6:7])
+        self.layer5 = nn.Sequential(*list(resnet.children())[7:8])
+
+    def forward(self,x):
+        out_0 = self.layer0(x)
+        out_1 = self.layer1(out_0)
+        out_2 = self.layer2(out_1)
+        out_3 = self.layer3(out_2)
+        out_4 = self.layer4(out_3)
+        out_5 = self.layer5(out_4)
+        return out_0, out_1, out_2, out_3, out_4, out_5
+
+# 그람 행렬을 생성하는 클래스 및 함수를 정의합니다.
+# [batch,channel,height,width] -> [b,c,h*w]
+# [b,c,h*w] x [b,h*w,c] = [b,c,c]
+
+class GramMatrix(nn.Module):
+    def forward(self, input):
+        b,c,h,w = input.size()
+        F = input.view(b, c, h*w)
+        G = torch.bmm(F, F.transpose(1,2))
+        return G
+
+# 모델을 학습의 대상이 아니기 때문에 requires_grad를 False로 설정합니다.
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print(device)
+
+resnet = Resnet().to(device)
+for param in resnet.parameters():
+    param.requires_grad = False
+
+# 그람행렬간의 손실을 계산하는 클래스 및 함수를 정의합니다.
+
+class GramMSELoss(nn.Module):
+    def forward(self, input, target):
+        out = nn.MSELoss()(GramMatrix()(input), target)
+        return out
+
+# 컨텐츠 이미지, 스타일 이미지, 학습의 대상이 되는 이미지를 정의합니다.
+
+content = image_preprocess(content_dir).to(device)
+style = image_preprocess(style_dir).to(device)
+generated = content.clone().requires_grad_().to(device)
+
+print(content.requires_grad,style.requires_grad,generated.requires_grad)
+
+# 각각을 시각화 합니다.
+
+plt.imshow(image_postprocess(content[0].cpu()))
+plt.show()
+
+plt.imshow(image_postprocess(style[0].cpu()))
+plt.show()
+
+gen_img = image_postprocess(generated[0].cpu()).data.numpy()
+plt.imshow(gen_img)
+plt.show()
+
+
+# 목표값을 설정하고 행렬의 크기에 따른 가중치도 함께 정의해놓습니다
+
+style_target = list(GramMatrix().to(device)(i) for i in resnet(style))
+content_target = resnet(content)[content_layer_num]
+style_weight = [1/n**2 for n in [64,64,256,512,1024,2048]]
+
+# LBFGS 최적화 함수를 사용합니다.
+# 이때 학습의 대상은 모델의 가중치가 아닌 이미지 자체입니다.
+# for more info about LBFGS -> http://pytorch.org/docs/optim.html?highlight=lbfgs#torch.optim.LBFGS
+
+optimizer = optim.LBFGS([generated])
+
+iteration = [0]
+while iteration[0] < epoch:
+    def closure():
+        optimizer.zero_grad()
+        out = resnet(generated)
+
+        # 스타일 손실을 각각의 목표값에 따라 계산하고 이를 리스트로 저장합니다.
+        style_loss = [GramMSELoss().to(device)(out[i],style_target[i])*style_weight[i] for i in range(len(style_target))]
+
+        # 컨텐츠 손실은 지정한 위치에서만 계산되므로 하나의 수치로 저장됩니다.
+        content_loss = nn.MSELoss().to(device)(out[content_layer_num],content_target)
+
+        # 스타일:컨텐츠 = 1000:1의 비중으로 총 손실을 계산합니다.
+        total_loss = 1000 * sum(style_loss) + torch.sum(content_loss)
+        total_loss.backward()
+
+        if iteration[0] % 100 == 0:
+            print(total_loss)
+        iteration[0] += 1
+        return total_loss
+
+    optimizer.step(closure)
+
+
+# 학습된 결과 이미지를 확인합니다.
+
+gen_img = image_postprocess(generated[0].cpu()).data.numpy()
+
+plt.figure(figsize=(10,10))
+plt.imshow(gen_img)
+plt.show()
 
 
 
@@ -2912,6 +3413,15 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 # 본문: https://greeksharifa.github.io/pytorch/2018/11/10/pytorch-usage-03-How-to-Use-PyTorch/
 # 참조: https://pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity
 
+
+
+    # 연쇄법칙 Chain rule
+ - 연쇄법칙을 간단히 설명하면, z가 y에 대한 종속변수이고, y는 x에 대한 종속변수일 때,
+   z를 x에 대해 미분한 값은 z를 y에 대해 미분한 값과 y를 x에 대해 미분한 값의 곱과 같다는 의미입니다.
+   z가 y에 비례해서 변하고 y는 x에 비례하기 때문에 두 쌍의 관계를 구해놓으면
+   z와 x의 관계는 이 두 관계의 곱으로 구할 수 있다고 보면 됩니다.
+ - 전파가 입력값이 여러 은닉층을 통과해 결과로 나오는 과정이었다고 하면,
+   역전파는 결과와 정답의 차이로 계산된 손실을 연쇄법칙을 이용하여 입력 단까지 다시 전달하는 과정을 의미합니다.
 
 
 
@@ -3528,6 +4038,8 @@ Nadam: Adam에 Momemtum 대신 NAG를 붙이자.
 * CIFAR100 Dataset
 * FashionMNIST Dataset
 * Hymenoptera_data
+* Python PIL, Pillow
+* glob
 
 
     # torchvision.datasets
@@ -3728,6 +4240,128 @@ image_datasets = {x: datasets.ImageFolder(f'data/hymenoptera_data/{x}', data_tra
 #'../data/hymenoptera_data' 위치에 접근해 train 폴더와 val폴더에 접근해 데이터를 불러옵니다.
 # 해당 코드는 dictionary comprehension을 사용한 것.
 dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size, num_workers=0, shuffle=True) for x in ['train', 'val']}
+
+
+     # 구글 colab 코랩 런타임 끊김 방지
+# 방법 1
+function ClickConnect(){
+    console.log("코랩 연결 끊김 방지");
+    document.querySelector("colab-toolbar-button#connect").click()
+}
+setInterval(ClickConnect, 60 * 1000)
+
+# 방법 2
+ - 구글 코랩에서 F12로 개발자 도구창을 열고 Console 선택 후 아래의 코드를 입력한 뒤 엔터를 누르면됩니다.
+function ClickConnect() {var buttons = document.querySelectorAll("colab-dialog.yes-no-dialog paper-button#cancel"); buttons.forEach(function(btn) { btn.click(); }); console.log("1분마다 자동 재연결"); document.querySelector("colab-toolbar-button#connect").click(); } setInterval(ClickConnect,1000*60);
+
+
+
+    # Python PIL, Pillow 라이브러리
+ - Python에서 사용가능한 패키지로 PIL 또는 Pillow가 존재합니다.
+   PIL은 Python Image Library의 약자로 다양한 기능을 가지고 있습니다.
+   그 중에는 물론 이미지의 크기를 조절할 수 있습니다.
+   Pillow 패키지에서 가장 중요한 클래스는 이미지를 표현하는 Image 클래스입니다.
+
+pip install Pillow # 설치
+from PIL import Image
+Image.open(): 기존 이미지 파일을 열 때 사용
+Image.new(): 새로운 이미지 파일을 생성할 때 사용
+Image.save():  이미지 파일을 저장할 때 사용
+
+    # 이미지 형태 확인 - Ex 1
+from PIL import Image
+# 이미지 열기
+im = Image.open('python.png')
+# 이미지 크기 출력
+print(im.size)
+# 이미지 JPG로 저장
+im.save('python.jpg')
+
+    # 이미지 형태 확인 - Ex 2
+# 이미지 불러오기 및 확인
+img = Image.open('./train/cat.1.jpg')
+plt.imshow(img)
+plt.show()
+
+    # 이미지 부분 잘라내기
+ - 이미지의 일부를 잘라내는 것을 Cropping 이라 부르는데, 이미지 객체에서 crop() 메서드를 사용하여 일부 영역을 잘라내는데,
+   crop() 메서드에서 리턴된 이미지는 부분 이미지로서 이를 저장하면 잘라낸 이미지만 저장된다.
+   crop()의 파라미터는 (좌, 상, 우, 하) 위치를 갖는 튜플로 지정한다.
+from PIL import Image
+im = Image.open('python.png')
+cropImage = im.crop((100, 100, 150, 150))
+cropImage.save('python-crop.jpg')
+
+    # 이미지 회전 및 Resize
+ - 이미지를 회전하기 위해서는 이미지 객체에서 rotate(회전각도) 메서드를 호출하면 된다.
+   또한, 이미지의 크기를 확대/축소하기 위해서는 이미지 객체에서 resize(크기튜플) 메서드를 호출한다.
+from PIL import Image
+im = Image.open('python.png')
+
+# 크기를 600x600 으로
+img2 = im.resize((600, 600))
+img2.save('python-600.jpg')
+
+# 90도 회전
+img3 = im.rotate(90)
+img3.save('python-rotate.jpg')
+
+    # 이미지 필터링
+ - Pillow 패키지는 이미지를 필터링하기 위한 여러 기본적인 필터들을 제공하고 있다.
+   이미지 필터를 위해서는 이미지 객체에서 filter(필터종류) 메서드를 호출하면 되는데,
+   필터종류는 ImageFilter 모듈을 import 하여 지정한다.
+   예를 들어, Blur 이미지를 위해서는 ImageFilter.BLUR 를 사용하고, 윤곽만 표시하기 위해서는 ImageFilter.CONTOUR 를 사용한다.
+from PIL import Image, ImageFilter
+im = Image.open('python.png')
+blurImage = im.filter(ImageFilter.BLUR)
+blurImage.save('python-blur.png')
+
+
+
+    # glob
+ - glob 모듈의 glob 함수는 사용자가 제시한 조건에 맞는 파일명을 리스트 형식으로 반환한다.
+   단, 조건에 정규식을 사용할 수 없으며 엑셀 등에서도 사용할 수 있는 '*'와 '?'같은 와일드카드만을 지원한다.
+
+   # glob - 특정 파일만 출력하기
+# 현재 디렉톨에서 확장자가 jpg인 파일만 모아서 출력한다.
+import glob
+for filename in glob.glob('*.jpg'):
+    print(filename)
+
+# 재귀적으로 현재 폴더의 모든 하위폴더까지 탐색하여 확장자가 jpg인 파일을 출력한다
+for filename in glob.iglob('**/*.jpg', recursive=True):
+    print(filename)
+
+# 예제: GuineaPig 폴더를 재귀적으로 돌며 jpg 파일을 출력
+for filename in glob.iglob('GuineaPig/**/*.jpg', recursive=True):
+    print(filename)
+
+
+# '*'는 임의 길이의 모든 문자열을 의미한다.
+output = glob.glob('dir/*.txt')
+print(output)
+['dir\\file1.txt', 'dir\\file101.txt', 'dir\\file102.txt', 'dir\\file2.txt', 'dir\\filea.txt', 'dir\\fileb.txt']
+
+# '?'는 한자리의 문자를 의미한다.
+output = glob.glob('dir/file?.*')
+print(output)
+['dir\\file1.bmp', 'dir\\file1.txt', 'dir\\file2.bmp', 'dir\\file2.txt', 'dir\\filea.txt', 'dir\\fileb.txt']
+
+# recursive=True로 설정하고 '**'를 사용하면 모든 하위 디렉토리까지 탐색한다.
+# 기본값은 False이며, 파일이 너무 많을 경우에 사용하면 과도한 cost가 소모된다고 한다.
+output = glob.glob('dir/**', recursive=True)
+print(output)
+['dir\\', 'dir\\file1.bmp', 'dir\\file1.txt', 'dir\\file101.txt', 'dir\\file102.txt', 'dir\\file2.bmp', 'dir\\file2.txt', 'dir\\filea.txt', 'dir\\fileb.txt', 'dir\\subdir', 'dir\\subdir\\subfile1.txt', 'dir\\subdir\\subfile2.txt']
+
+
+
+
+
+
+
+
+
+
 
 
 
