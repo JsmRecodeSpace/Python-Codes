@@ -267,6 +267,29 @@ def labelEncode_features(df):
         df[feature] = le.transform(df[feature])
     return df
 
+    # 라벨 인코딩 - Ex 2
+def labelEncode_features(train_data, test_data, columns):
+    for column in columns:
+        encoder = LabelEncoder()
+        train_data[column] = encoder.fit_transform(train_data[column])
+        test_data[column] = encoder.transform(test_data[column])
+    return train_data, test_data
+
+    # 라벨 인코딩 - Ex 3
+# 품질 관련 변수 → 숫자로 매핑
+# 라벨 인코딩시 순서가 필요할 때(회귀분석 모델처럼)
+qual_cols = train_re.dtypes[train_re.dtypes == np.object].index
+def label_encoder(df_, qual_cols):
+    df = df_.copy()
+    mapping={
+      'Ex':5, 'Gd':4, 'TA':3, 'Fa':2, 'Po':1
+    }
+    for col in qual_cols :
+        df[col] = df[col].map(mapping)
+    return df
+
+
+
     # 원핫인코딩(One-Hot Encoding)
 # - 피처 값의 유형에 따라 새로운 피처를 추가해 고유 값에 해당하는 칼럼에만 1을 표시하고 나머지 칼럼에는 0을 표시하는 방식
 # - 사이킷런에도 있지만 판다스에서 더 쉽게 지원하므로 판다스의 API인 get_dummies()을 기록
@@ -446,6 +469,57 @@ train_data_robustScaled = robustScaler.transform(train_data)
 #  -> 데이터 중 금액처럼 큰 수치 데이터에 로그를 취하게 되는 이유이기도 하다.
 #  -> 보통 이런 데이터는 선별적으로 로그를 취한 후 모델링 전 전반적으로 스케일링을 적용한다.(in my opinion)
 train_test.iloc[:,1:] = np.log1p(train_test.iloc[:,1:])
+
+# 회귀분석, target에 log1p화
+log_target = np.log1p(target)
+fig, axes = plt.subplots(2, 1, figsize=(10, 8))
+sns.kdeplot(target, ax=axes[0])
+sns.kdeplot(np.log1p(target), ax=axes[1])
+plt.show()
+
+
+
+    # 왜도 확인 및 변환
+numeric_feats = train_re.dtypes[train_re.dtypes != "object"].index
+# Check the skew of all numerical features
+skewed_feats = train_re[numeric_feats].apply(lambda x: skew(x.dropna())).sort_values(ascending=False)
+print("\nSkew in numerical features: \n")
+skewness = pd.DataFrame({'Skew' :skewed_feats})
+skewness = skewness[abs(skewness)['Skew'] > 0.75]
+print("There are {} skewed numerical features to Box Cox transform".format(skewness.shape[0]))
+
+# 그림으로 확인
+plt.figure(figsize=(12, 17))
+plt.subplot(5,2,1)
+ax = sns.distplot(train_re['Gr Liv Area'])
+plt.subplot(5,2,2)
+ax = sns.distplot(np.log1p(train_re['Gr Liv Area']))
+
+plt.subplot(5,2,3)
+ax = sns.distplot(train_re['Garage Area'])
+plt.subplot(5,2,4)
+ax = sns.distplot(np.log1p(train_re['Garage Area']))
+
+
+plt.subplot(5,2,5)
+ax = sns.distplot(train_re['2nd flr SF'])
+plt.subplot(5,2,6)
+ax = sns.distplot(np.log1p(train_re['2nd flr SF']))
+
+plt.subplot(5,2,7)
+ax = sns.distplot(train_re['Total SF'])
+plt.subplot(5,2,8)
+ax = sns.distplot(np.log1p(train_re['Total SF']))
+
+plt.subplot(5,2,9)
+ax = sns.distplot(train_re['1st Flr SF'])
+plt.subplot(5,2,10)
+ax = sns.distplot(np.log1p(train_re['1st Flr SF']))
+
+skewness_features = ['Gr Liv Area', 'Garage Area', '2nd flr SF', 'Total SF', '1st Flr SF']
+train_re[skewness_features] = np.log1p(train_re[skewness_features])
+test[skewness_features] = np.log1p(test[skewness_features])
+
 
 
 
@@ -767,6 +841,23 @@ for iter_count, accuracy in enumerate(scores):
 print(f'평균 정확도: {np.mean(scores):.4f}')
 
 
+# cross_val_score 함수 - Ex 1
+def get_model_cv_prediction(model, feature_data, y_target):
+    scores = cross_val_score(model, feature_data, y_target, scoring='neg_mean_absolute_error', cv=kfold, n_jobs=-1)
+    avg_score = np.mean(-1 * scores)
+    print(f'{model.__class__.__name__} 모델의 평균 NMAE: {avg_score:.4f}')
+
+# cross_validate 함수 - Ex 2
+def get_various_scores(model, feature_data, y_target):
+    scoring = {'mae':'neg_mean_absolute_error', 'mse':'neg_mean_squared_error', 'r2':'r2'}
+    scores = cross_validate(model, feature_data, y_target, scoring=scoring, cv=kfold, n_jobs=-1)
+    avg_mae = np.mean(-1 * scores['test_mae'])
+    avg_mse = np.mean(-1 * scores['test_mse'])
+    avg_r2 = np.mean(scores['test_r2'])
+    print(f'{model.__class__.__name__:30s} MAE: {avg_mae:.4f} / MSE: {avg_mse:.4f} / R2: {avg_r2:.4f}')
+
+
+
     # LOOCV(Leave-One-Out Cross-Validation)
 # LOOCV is very time-consuming => useful in small data
 from sklearn.model_selection import LeaveOneOut
@@ -785,6 +876,38 @@ sscv = ShuffleSplit(test_size=.5, train_size=.4, n_splits=10)
 scores = cross_val_score(model, X_train, y_train, cv=sscv)
 scores.mean()
 
+
+
+    # 모델 훈련 함수 정의 - Ex 1
+def fit_model(model, train, target):
+    scores = []
+    for iter_count, (train_idx, valid_idx) in enumerate(kfold.split(train, target)):
+
+        X_train, X_valid = train[train_idx], train[valid_idx]
+        y_train, y_valid = target[train_idx], target[valid_idx]
+
+        model.fit(X_train, y_train)
+
+        pred = model.predict(X_valid)
+        score = mean_absolute_error(y_valid, pred)
+        scores.append(score)
+    return model, np.mean(scores)
+
+    # 모델 훈련 함수 정의 - Ex 2 (joblib을 이용한 저장)
+def fit_best_model(model, train, target, new_kfold):
+    tmp_scores = []
+    for iter_count, (train_idx, valid_idx) in enumerate(new_kfold.split(train, target)):
+
+        X_train, X_valid = train[train_idx], train[valid_idx]
+        y_train, y_valid = target[train_idx], target[valid_idx]
+
+        model.fit(X_train, y_train)
+        joblib.dump(best_model, f'MODELS/seed_ensemble_{nowDate}_{best_model.__class__.__name__}/{best_model.__class__.__name__}_{iter_count+1}_{seed}.pkl')
+
+        pred = model.predict(X_valid)
+        score = mean_absolute_error(y_valid, pred)
+        scores.append(score); tmp_scores.append(score)
+    print(f'SEED: {seed}, 평균성능: {np.mean(tmp_scores):.4f}')
 
 
 
@@ -1233,7 +1356,7 @@ print(f'테스트 데이터 세트 정확도: {accuracy_score(y_test, pred):.4f}
 
 
 
-    # Random Search
+    # Random Search, RandomizedSearchCV
 from sklearn.model_selection import RandomizedSearchCV
 params = {'criterion': ['gini', 'entropy'],
        	  'max_depth': [5,6,8,10],
@@ -1254,7 +1377,7 @@ print(best_parameters)
 print(best_result)
 print("Best estimator:\n{}".format(rand_search.best_estimator_))
 
-    # RandomSearhCV - Ex 2
+    # RandomSearhCV - Ex 1
 clfs = [
    (
         KNeighborsClassifier(),              # 사용하려는 모델
@@ -1310,6 +1433,136 @@ for clf, param_grid in tqdm(clfs):
     print('{:30s} {:30f} {:.1f}'.format(clf_name, clf_score, time.time() - start))
     clfs_tuned.append((clf_name, rand_search, clf_score))
                                 # rand_search안의 베스트 꺼내서 반환하도록 해야함
+
+    # RandomSearhCV - Ex 2
+regs = [
+     (
+         ExtraTreesRegressor(),
+         {
+          'n_estimators': [i for i in range(100, 301, 25)],
+          'max_depth': [i for i in range(10, 21, 1)],
+          'max_features': [i/10 for i in range(8, 11)],
+ #         'min_samples_split': [range(1, 4, 1)],
+          'min_samples_leaf': [i for i in range(1, 6, 1)],
+          'n_jobs' : [-1],
+          'random_state' : [seed]
+         }
+     ),
+#    (
+#        RandomForestRegressor(),
+#        {
+#         'n_estimators': [i for i in range(100, 301, 25)],
+#         'max_depth': [i for i in range(10, 21, 1)],
+#         'max_features': [i/10 for i in range(8, 11)],
+#         'min_samples_split': [range(1, 4, 1)],
+#         'min_samples_leaf': [i for i in range(1, 6, 1)],
+#         'n_jobs' : [-1],
+#         'random_state' : [seed]
+#        }
+#    ),
+#    (
+#        GradientBoostingRegressor(),
+#        {
+#         'learning_rate': [0.01, 0.03, 0.05, 0.07, 0.09, 0.1],
+#         'n_estimators': [i for i in range(100, 501, 25)],
+#         'max_depth': [i for i in range(3, 11, 1)],
+#         'subsample' : [0.875, 0.9, 0.95, 1.0],
+#         'max_features' : [0.9, 0.95, 0.975, 1.0],
+#         'min_samples_leaf' : [3, 10],
+#         'min_samples_split' : [i for i in range(2, 8, 1)],
+#         'random_state' : [seed]
+#         }
+#    ),
+#    (
+#        XGBRegressor(),
+#        {
+#         'learning_rate': [0.01, 0.03, 0.05, 0.07, 0.09, 0.1, 0.11, 0.13, 0.15],
+#         'n_estimators' :[100,200,300,400,500],
+#         'max_depth': [3, 5, 7, 9, 11, 13, 15],
+#         'colsample_bytree' :[0.85, 0.875, 0.9, 0.925, 0.95, 0.975, 1.0],
+#         'subsample' :[0.875, 0.9, 0.925, 0.95, 0.975, 1.0],
+#         'min_child_weight' :[1, 2, 3, 4, 5],
+#         'n_jobs' : [-1],
+#         'random_state' : [seed]
+#        }
+#    ),
+     (
+         LGBMRegressor(),
+         {
+         'learning_rate' : [0.01, 0.03, 0.05, 0.07, 0.09, 0.1, 0.11, 0.13, 0.15],
+         'n_estimators' : [100,200,300,400,500],
+         'max_depth': [7, 13, 19, 25, 31],
+         'subsample' : [0.875, 0.9, 0.925, 0.95, 0.975, 1.0],
+         'colsample_bytree' : [0.85, 0.875, 0.9, 0.925, 0.95, 0.975, 1.0],
+ #        'min_child_samples' : int(round(min_child_samples)),
+ #        'num_leaves' : int(round(num_leaves)),
+         'random_state' : [seed],
+         'n_jobs' : [-1],
+         }
+     ),
+     (
+        SVR(),
+        {'kernel' : ['rbf'],
+         'C': [1, 5, 10, 15],
+         'gamma': [0.005, 0.01, 0.03, 0.1, 0.3, 1.0]
+        }
+     ),
+     (
+         CatBoostRegressor(),
+         {
+          'learning_rate': [0.0001, 0.001, 0.01, 0.1],
+          'n_estimators': [100, 300, 500, 1000, 1300, 1600],
+          'max_depth': [3, 6, 9],
+ #         'iterations' : [500, 750, 1000],
+          'l2_leaf_reg' : [0.001, 0.01, 0.1],
+          'random_strength' : [0.25, 0.5 ,1],
+          'min_child_samples' : [2, 5, 10, 15, 20],
+          'rsm' : [0.5, 0.7, 0.9],
+ #         'subsample' : [0.95, 0.975, 1.0],
+          'verbose' : [False],
+          'random_state' : [seed],
+         }
+     ),
+#    (
+#        NGBRegressor(random_state=seed),
+#        {
+#         'learning_rate': [0.005, 0.01, 0.015, 0.02],
+#         'n_estimators': [500, 600, 700],
+#         'verbose' : [False],
+#        'random_state' : [seed],
+#        }
+#    ),
+#     (
+#         Ridge(),
+#         {'alpha': [0.5, 0.75, 1.0, 1.25, 1.5],
+#          'max_iter': [500, 750, 1000, 1250],
+#          'random_state' : [seed]
+#          }
+#     ),
+#     (
+#         LinearRegression(), # LR은 예측결과 inf값이 다수 나와서 제외
+#         {'n_jobs' : [-1],
+#         }
+#     ),
+]
+
+
+RS_tuned_regs = []  # 튜닝된 모델을 저장
+for reg, param_grid in regs:
+    start = time.time()
+    rand_search = RandomizedSearchCV(reg, param_grid, n_iter=200, scoring='neg_mean_absolute_error',
+                                     cv=kfold, random_state=seed, n_jobs=-1)
+    rand_search.fit(train_sel, log_target)
+    reg_name = reg.__class__.__name__
+    reg_score = rand_search.best_score_
+    print(f'{reg_name:30s} score: {reg_score:.4f}, takes {time.time() - start:.1f} secs')
+    RS_tuned_regs.append((reg_name, rand_search.best_estimator_, reg_score))
+
+# 저장
+now = datetime.datetime.now()
+nowDate = now.strftime('%Y-%m-%d')
+joblib.dump(RS_tuned_regs,f'./MODELS/RS_tuned_regs_{nowDate}.pkl')
+
 
 
 
@@ -1649,6 +1902,9 @@ rules.query('confidence >= 0.85')
 # - 스태킹은 여러 가지 다른 모델의 예측 결괏값을 다시 학습 데이터로 만들어서 다른 모델(메타 모델)로 재학습시켜 결과를 예측하는 방법입니다.
 # -  Model의 결과값을 앙상블할 때, 고려해야하는 가장 큰 2가지: 모델의 성능, 모델 간 이질성
 
+
+
+
     # Voting Ensemble
 # 서로 다른 모델을 연결하여 Voting해주는 방법
 # - 보팅 방법에는 두 가지 방법이 있습니다. 하드 보팅과 소프트 보팅입니다.
@@ -1682,6 +1938,40 @@ for clf in (xgb, tree, knn, vo_clf):
     class_name = clf.__class__.__name__
     print(f'{class_name} 정확도: {accuracy_score(y_test, pred):.4f}')
 
+
+
+    # Averaging - Ex 1 (조합 찾기)
+    # Averaging 앙상블에 사용하지 않을 모델은 주석 처리
+selected = [
+#    'KNeighborsRegressor',
+    'ExtraTreesRegressor',
+#    'RandomForestRegressor'
+    'GradientBoostingRegressor',
+    'XGBRegressor',
+    'LGBMRegressor',
+#    'NGBRegressor',
+    'CatBoostRegressor',
+    'SVR',
+    'Ridge',
+    'LinearRegression'
+]
+
+avg_estimators = [(reg[0], reg[1]) for reg in RS_tuned_regs if reg[0] in selected]
+stk_estimators = [(reg[0], reg[1]) for reg in RS_tuned_regs if reg[0] in selected]
+# 모든 조합에 대해서 돌려본다
+
+best_avg_score = np.inf
+for model_nums in range(2, len(avg_estimators) + 1):
+    print(f'{model_nums}개 모델의 Avg앙상블')
+    for avg_estimator in (combinations(avg_estimators, model_nums)):
+        avg_reg = VotingRegressor(estimators = avg_estimator, n_jobs=-1)
+        avg_reg, avg_score = fit_model(avg_reg, train_sel, log_target)
+        print(f'{"●".join([reg_name for reg_name, _, in avg_estimator])}:  {avg_score:.4f}')
+        if avg_score < best_avg_score:
+            best_avg_score = avg_score
+            best_avg_reg = avg_reg
+
+print(f'\n최고조합: {"●".join([est.__class__.__name__ for est in best_avg_reg.estimators_])}\n최고성능: {best_avg_score}')
 
 
 
@@ -1825,6 +2115,39 @@ for clf in (tree, xgb, rf, stacking_2) :
 
 
 
+    # Stacking - Ex 1 조합찾기, 메타모델 찾기
+best_stk_score = np.inf
+for model_nums in range(2, len(stk_estimators) + 1):
+    for stk_estimator in (combinations(stk_estimators, model_nums)):
+        print(f'{"●".join([reg_name for reg_name, _, in stk_estimator])}')
+        stack = StackingTransformer(stk_estimator, regression=True, needs_proba=False, metric=None,
+                            n_folds=5, stratified=False, shuffle=True, random_state=seed)
+        stack = stack.fit(train_sel, log_target)
+
+        S_train = stack.transform(train_sel)
+#        S_valid = stack.transform(X_valid)
+        S_test = stack.transform(test_sel)
+
+        for iter_count, meta_reg in enumerate(meta_regs):
+            meta_reg, meta_score = fit_model(meta_reg, S_train, log_target)
+            print(f'meta model_{iter_count + 1} : {meta_reg.__class__.__name__} / {meta_score:.4f}')
+
+            if meta_score < best_stk_score:
+                best_stk_ests = stk_estimator
+                best_stk_score = meta_score
+                best_stk_meta_reg = meta_reg
+    print()
+
+print(f'최고모델조합: {"●".join([reg_name for reg_name, _, in best_stk_ests])} \
+      \n최고메타모델: {best_stk_meta_reg.__class__.__name__} \
+      \n최고성능: {best_stk_score}')
+
+
+
+
+
+
+
     # Ensemble 성능평가
 import pandas as pd
 import matplotlib.pylab as plt
@@ -1879,6 +2202,64 @@ for p in tqdm([0, 1, 2.56]):  # p==1:산술평균, p=0:기하평균, 그 외:멱
 
 p, models, score = best_avg_ensemble
 print('p={}\n{}\n{}'.format(p, '●'.join([clf_name for clf_name, _, _ in models]), score))
+
+
+
+    # Seed Ensemble 씨드 앙상블 - Ex 1 (기하평균)
+for model in tuned_models:
+
+    ### Get tuned model
+    best_model = model
+    print(f'Start {best_model.__class__.__name__} Seed Ensemble')
+
+    ### Make folders for saving models
+    now = datetime.datetime.now()
+    nowDate = now.strftime('%Y-%m-%d')
+    if os.path.exists('MODELS') == False:
+        os.mkdir('MODELS')
+    if os.path.exists(f'MODELS/seed_ensemble_{nowDate}_{best_model.__class__.__name__}') == False:
+        os.mkdir(f'MODELS/seed_ensemble_{nowDate}_{best_model.__class__.__name__}')
+
+    ### Set Random Seed
+    lucky_seeds = [36, 42, 82, 88]
+    scores = []
+    for iter_count, seed in enumerate(lucky_seeds):
+        best_model.random_state = seed
+        new_kfold = KFold(n_splits=n_splits, shuffle=True, random_state=seed)
+        #new_rkf = RepeatedKFold(n_splits=n_splits, n_repeats=2, random_state=seed)
+
+        fit_best_model(best_model, train_sel, log_target, new_kfold)
+
+    print(f'\n모델 {len(lucky_seeds) * new_kfold.n_splits}개 학습 완료 !')
+    print(f'{best_model.__class__.__name__} 모델의 Seed Ensemble 평균 성능: {np.mean(scores):.4f}')
+
+    ### Get model names
+    model_names = os.listdir(f'MODELS/seed_ensemble_{nowDate}_{best_model.__class__.__name__}')
+    model_lst = [x for x in model_names if x.endswith(".pkl")]
+    assert len(model_lst) == len(lucky_seeds) * new_kfold.n_splits # 숫자가 맞지 않으면 에러출력
+
+
+    ### Predict test and Get gmean
+    preds = []
+    for model_name in model_lst:
+        model = joblib.load(f'MODELS/seed_ensemble_{nowDate}_{best_model.__class__.__name__}/'+model_name)
+        predict_ = model.predict(test_sel)
+        preds.append(predict_)
+    pred_mean = gmean([pred for pred in preds])
+    pred_mean_expm = np.expm1(pred_mean)
+
+    submission = pd.DataFrame({
+        'id': sample_sub.id,
+        'target': pred_mean_expm
+    })
+
+    submission.to_csv(f'./SUBMISSIONS/seed_Ensemble_submission_{nowDate}_{best_model.__class__.__name__}.csv', index=False)
+    print('Seed Ensemble submission 출력 완료!\n')
+
+
+
+
+
 
 
 
