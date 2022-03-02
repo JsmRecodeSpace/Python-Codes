@@ -480,6 +480,21 @@ c2.most_common(3) #가로 안에 3 입력하면 빈도수가 3인 것들 나옴
 
 
 
+	# 리스트 중복제거
+1. set 이용
+
+2. dictionary 이용
+ - python 3.7이상의 버전부터 dictionary는 "key"값을 넣는 순서를 기억함.
+   따라서 dict을 이용해서 가장 간단한 방법으로 리스트의 중복을 제거하면서 기존 리스트의 순서를 유지할 수 있음
+list(dict.fromkeys(dup_lst))
+
+3. sorted() 이용
+ - 주어진 리스트를 sorted함수로 정렬하되 정렬 순서(또는 키)는 원소의 인덱스로 사용함.
+sorted(set(dup_list), key=lambda x: dup_list.index(x))
+
+4. For 구문을 이용: for 구문을 이용하여 기존 리스트에서 중복을 제거한 새로운 리스트를 만듦
+
+
 
 
 
