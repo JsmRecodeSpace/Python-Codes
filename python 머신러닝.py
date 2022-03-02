@@ -99,6 +99,110 @@ num_features = [c for c in train_test.columns.tolist() if c not in cat_features]
 
 
 
+    # W2V vectorizer
+# Make corpus: corpus는 말뭉치라는 뜻임
+# oversample2: unique사용 X, 비복원추출 -> 복원추출
+# data는 X_train 또는 X_test가 될 것
+# p_level은 대, 중, 소분류중에 하나 넣기('gds_grp_mclas_nm', 'gds_grp_nm', 'goods_id')
+# n은 몇번 오버샘플링 할 것인지 -> 1일때 기본 + 오버샘플링, 2일때 기본 + 오버샘플링2
+#                               -> 고객리스트가 10개인데 n값이 1이면 고객리스트를 20개(기본(10) + 오버샘플링(10))로 반환
+#                               -> 고객리스트가 10개인데 n값이 2이면 고객리스트를 30개(기본(10) + 오버샘플링(20))로 반환
+
+def oversample2(data, p_level, n=1, seed=0):
+    np.random.seed(seed)
+    cust_ids = data['cust_id'].unique().tolist()
+    customerProducts = []
+
+    for cust_id in cust_ids:
+        productLst = data.query(f'cust_id=={cust_id}')[p_level].tolist()
+
+        for j in range(n):
+            productLst = list(np.append(productLst, np.random.choice(productLst, len(productLst) * n, replace=True)))
+        customerProducts.append(productLst)
+
+    return customerProducts
+
+# 중분류 구매목록
+print('중분류 구매목록 뽑는중')
+X_train_corpus_nm = oversample2(df_train,'gds_grp_nm', 2)
+X_test_corpus_nm = oversample2(df_test,'gds_grp_nm', 2)
+
+
+### Training the Word2Vec model
+num_features = 300 # 단어 벡터 차원 수
+min_word_count = 1 # 최소 단어 수
+context = 10 # 학습 윈도우(인접한 단어 리스트) 크기
+
+# 중분류
+print('중분류 학습중')
+w2v_nm = word2vec.Word2Vec(X_train_corpus_nm,                  # 학습시킬 단어 리스트
+                        size=num_features,        # 단어 벡터의 차원 수
+                        window=context,           # 주변 단어(window)는 안뒤로 몇개까지 볼 것인지
+                        min_count=min_word_count, # 단어 리스트에서 출현 빈도가 몇번 미만인 단어는 분석에서 제외해라
+                        workers=4,                # cpu는 쿼드코어를 써라 n_jobs=-1과 같음
+                        sg = 1,                   # CBOW와 skip-gram중 후자를 선택
+                        iter=7,
+                        seed=0)
+
+# 필요없는 메모리 unload
+w2v_nm.init_sims(replace=True)
+
+### Make features
+# 구매상품에 해당하는 벡터의 평균/최소/최대 벡터를 feature로 만드는 전처리기(pipeline에서 사용 가능)
+class EmbeddingVectorizer_nm(object):
+    def __init__(self, word2vec):
+        self.word2vec = word2vec
+        self.dim = num_features
+    def fit(self, X, y):
+        return self
+    def transform(self, X):
+        return np.array([
+            np.hstack([
+                np.std([self.word2vec[w] for w in words if w in self.word2vec] or [np.zeros(self.dim)], axis=0),
+                np.var([self.word2vec[w] for w in words if w in self.word2vec] or [np.zeros(self.dim)], axis=0),
+            ])  # std, var, max, min, mean
+            for words in X
+        ])
+
+# 중분류
+Vectorizer = EmbeddingVectorizer_nm(w2v_nm.wv)
+Vectorizer.fit(X_train_corpus_nm, y_train)
+
+X_train_nm = pd.DataFrame(Vectorizer.transform(X_train_corpus_nm))
+X_test_nm = pd.DataFrame(Vectorizer.transform(X_test_corpus_nm))
+
+display(X_train_nm)
+
+
+
+
+    # W2V 유사도 구하기
+# W2V 학습
+num_features = 20 # 문자 벡터 차원 수
+min_word_count = 0 # 최소 문자 수
+num_workers = 4 # 병렬 처리 스레드 수
+context = 3 # 문자열 창 크기
+
+wv_model1 = word2vec.Word2Vec(corpus1_oversample,
+                          workers=num_workers,
+                          size=num_features,
+                          min_count=min_word_count,
+                          window=context)
+
+# gds_grp_nm
+def get_0_similarity_nm(product):
+    try:
+        sim = wv_model2.similarity('0', f'{product}')
+    except:
+        sim = np.nan
+    return sim
+
+tr2['nm_0_similarity'] = tr2['gds_grp_nm'].apply(get_0_similarity_nm)
+
+train_test['nm_0_similarity'] = tr2.groupby('cust_id')['nm_0_similarity'].apply(lambda x: np.nanmean(x))
+
+
+
 ──────── (2). 피처 변환 (Feature Preprocessing) ────────
 
     # 결측값 처리 - Ex 1
