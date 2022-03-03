@@ -34,7 +34,19 @@
 <br>
 
 ## 딥러닝
-* 
+* Pytorch Basic
+* DNN
+* CNN
+* RNN
+* AE
+* GAN
+* Object Detection
+* Style Transfer
+* Import codes
+* 딥러닝의 발전을 이끈 알고리즘들
+* 공부하며 떠오른 것들
+* 혼합아이디어
+* 기타 설명
 <br>
 
 ## 마크다운
