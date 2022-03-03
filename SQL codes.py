@@ -1,0 +1,7 @@
+
+    # SQL 쿼리
+SELECT
+FROM
+WHERE (IS, IS NOT, =, !=)
+ORDER BY (DESC)
+LIMIT
