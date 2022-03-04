@@ -8,15 +8,11 @@
 * RNN
 * AE
 * GAN
-* Object Detection
-* Style Transfer
 * Import codes
 * 딥러닝의 발전을 이끈 알고리즘들
 * 공부하며 떠오른 것들
 * 혼합아이디어
 * 기타 설명
-
-
 
 
 
@@ -3715,217 +3711,6 @@ for i in range(epoch):
 
 
 
----------- Object Detection ----------
-
-
-    # 20년도 까지 나온 OD기법들 나열
-- https://github.com/hoya012/deep_learning_object_detection
-
-
-
-
----------- Style Transfer ----------
-
-
-    # 스타일 트랜스퍼 style transfer
- - 스타일 트랜스퍼는 전이학습의 단적인 예라고 할 수 있습니다.
- - 학습된 필터들의 특성은 바로 범용성(여러 분야나 용도로 널리 쓰일 수 있는 특성)에 있습니다.
-   가로세로 대각선 필터들은 사실 작업 종류와는 관계없이 물체를 인식하는 데 모두 적용될 수 있기 때문에
-   학습된 모델에서 얻은 지식을 다른 작업에 전이할 수 있는 것입니다.
-
-    # 스타일
- - 논문에서 스타일은 다른 필터 응답들 간의 연관성(correlations between the different filter response)라 서술
- - 필터 활성도의 그람 행렬로 나타냄.
- - 그람 행렬은 내적이 정의된 공간에서 벡터 v1, v2, vn,... 이 있을 때 가능한 모든 경우의 내적을 행렬로 나타낸 것
-
-    # 콘텐츠
- - 스타일과 대비되는 형태를 의미
- - 더 높은 레이어 내의 특성 응답(feature responses in higher layers of the network)이라 정의.
- - 특성 응답은 활성화 지도를 의미하고, 더 높은 레이어라 한 것은 모델에서 어느 정도 깊이가 있는 지점을 의미
-
-총 손실은 콘텐츠 손실과 스타일 손실에 각각 가중치 α, β를 곱해서 합한 값이 됨. 왼쪽과 가운데를 비교해서 스타일 손실을 계산하고,
-가운데와 오른쪽을 비교해서 콘텐츠 손실을 계산함.
-스타일 손실은 모든 위치에서 발생하지만 콘텐츠 손실은 conv_4에서만(특정 깊이의 위치) 발생하는 것을 알 수 있습니다.
-스타일 손실을 모든 위치에서 계산하는 이유는 모델의 위치에 따라 수용 영역(receptive field)가 달라지기 때문입니다.
- -> 좁은 영역의 스타일부터 넓은 영역의 스타일까지 다양하게 보겠다는 의미.
-     좁은 수용 영역에서 뽑은 스타일은 세밀한데 비해, 넓은 수용 영역에서 뽑아낸 스타일은 전체적인 스타일과 가까움.
-논문에서 con_v에서 콘텐츠 손실을 계산한 것은 형태를 보존하면서도 스타일을 잘 입힐 수 있도록 실험을 통해 적절한 위치를 찾은 것으로 보임.
-
-스타일 트랜스퍼를 구현할 때는 2차 미분 값까지 이용한 L-BFGS(limited-memory BFGS) 알고리즘을 사용하는 편
-
-
-## Image Style Transfer ##
-< 목차 >
-1. Settings
- 1) Import required libraries
- 2) Hyperparameter
-2. Data
- 1) Directory
- 2) Preprocessing Function
- 3) Postprocessing Function
-3. Model & Loss Function
- 1) Resnet
- 2) Delete Fully Connected Layer
- 3) Gram Matrix Function
- 4) Model on GPU
- 5) Gram Matrix Loss
-4. Train
- 1) Prepare Images
- 2) Set Targets & Style Weights
- 3) Train
-5. Check Results
-
-
-# 컨텐츠 손실을 어느 지점에서 맞출것인지 지정해놓습니다.
-content_layer_num = 1
-image_size = 512
-epoch = 5000
-
-content_dir = "./images/content/Tuebingen_Neckarfront.jpg"
-style_dir = "./images/style/1280px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg"
-
-# 이미 학습된 ResNet 모델이 이미지넷으로 학습된 모델이기 때문에 이에 따라 정규화해줍니다.
-def image_preprocess(img_dir):
-    img = Image.open(img_dir)
-    transform = transforms.Compose([
-                    transforms.Resize(image_size),
-                    transforms.CenterCrop(image_size),
-                    transforms.ToTensor(),
-                    transforms.Normalize(mean=[0.40760392, 0.45795686, 0.48501961],
-                                         std=[1,1,1]),
-                ])
-    img = transform(img).view((-1,3,image_size,image_size))
-    return img
-
-
-# 정규화 된 상태로 연산을 진행하고 다시 이미지화 해서 보기위해 뺐던 값들을 다시 더해줍니다.
-# 또한 이미지가 0에서 1사이의 값을 가지게 해줍니다.
-
-def image_postprocess(tensor):
-    transform = transforms.Normalize(mean=[-0.40760392, -0.45795686, -0.48501961],
-                                     std=[1,1,1])
-    img = transform(tensor.clone())
-    img = img.clamp(0,1)
-    img = torch.transpose(img,0,1)
-    img = torch.transpose(img,1,2)
-    return img
-
-# 미리 학습된 resnet50를 사용합니다.
-resnet = models.resnet50(pretrained=True)
-for name,module in resnet.named_children():
-    print(name)
-
-# 레이어마다 결과값을 가져올 수 있게 forward를 정의합니다.
-
-class Resnet(nn.Module):
-    def __init__(self):
-        super(Resnet,self).__init__()
-        self.layer0 = nn.Sequential(*list(resnet.children())[0:1])
-        self.layer1 = nn.Sequential(*list(resnet.children())[1:4])
-        self.layer2 = nn.Sequential(*list(resnet.children())[4:5])
-        self.layer3 = nn.Sequential(*list(resnet.children())[5:6])
-        self.layer4 = nn.Sequential(*list(resnet.children())[6:7])
-        self.layer5 = nn.Sequential(*list(resnet.children())[7:8])
-
-    def forward(self,x):
-        out_0 = self.layer0(x)
-        out_1 = self.layer1(out_0)
-        out_2 = self.layer2(out_1)
-        out_3 = self.layer3(out_2)
-        out_4 = self.layer4(out_3)
-        out_5 = self.layer5(out_4)
-        return out_0, out_1, out_2, out_3, out_4, out_5
-
-# 그람 행렬을 생성하는 클래스 및 함수를 정의합니다.
-# [batch,channel,height,width] -> [b,c,h*w]
-# [b,c,h*w] x [b,h*w,c] = [b,c,c]
-
-class GramMatrix(nn.Module):
-    def forward(self, input):
-        b,c,h,w = input.size()
-        F = input.view(b, c, h*w)
-        G = torch.bmm(F, F.transpose(1,2))
-        return G
-
-# 모델을 학습의 대상이 아니기 때문에 requires_grad를 False로 설정합니다.
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print(device)
-
-resnet = Resnet().to(device)
-for param in resnet.parameters():
-    param.requires_grad = False
-
-# 그람행렬간의 손실을 계산하는 클래스 및 함수를 정의합니다.
-
-class GramMSELoss(nn.Module):
-    def forward(self, input, target):
-        out = nn.MSELoss()(GramMatrix()(input), target)
-        return out
-
-# 컨텐츠 이미지, 스타일 이미지, 학습의 대상이 되는 이미지를 정의합니다.
-
-content = image_preprocess(content_dir).to(device)
-style = image_preprocess(style_dir).to(device)
-generated = content.clone().requires_grad_().to(device)
-
-print(content.requires_grad,style.requires_grad,generated.requires_grad)
-
-# 각각을 시각화 합니다.
-
-plt.imshow(image_postprocess(content[0].cpu()))
-plt.show()
-
-plt.imshow(image_postprocess(style[0].cpu()))
-plt.show()
-
-gen_img = image_postprocess(generated[0].cpu()).data.numpy()
-plt.imshow(gen_img)
-plt.show()
-
-
-# 목표값을 설정하고 행렬의 크기에 따른 가중치도 함께 정의해놓습니다
-
-style_target = list(GramMatrix().to(device)(i) for i in resnet(style))
-content_target = resnet(content)[content_layer_num]
-style_weight = [1/n**2 for n in [64,64,256,512,1024,2048]]
-
-# LBFGS 최적화 함수를 사용합니다.
-# 이때 학습의 대상은 모델의 가중치가 아닌 이미지 자체입니다.
-# for more info about LBFGS -> http://pytorch.org/docs/optim.html?highlight=lbfgs#torch.optim.LBFGS
-
-optimizer = optim.LBFGS([generated])
-
-iteration = [0]
-while iteration[0] < epoch:
-    def closure():
-        optimizer.zero_grad()
-        out = resnet(generated)
-
-        # 스타일 손실을 각각의 목표값에 따라 계산하고 이를 리스트로 저장합니다.
-        style_loss = [GramMSELoss().to(device)(out[i],style_target[i])*style_weight[i] for i in range(len(style_target))]
-
-        # 컨텐츠 손실은 지정한 위치에서만 계산되므로 하나의 수치로 저장됩니다.
-        content_loss = nn.MSELoss().to(device)(out[content_layer_num],content_target)
-
-        # 스타일:컨텐츠 = 1000:1의 비중으로 총 손실을 계산합니다.
-        total_loss = 1000 * sum(style_loss) + torch.sum(content_loss)
-        total_loss.backward()
-
-        if iteration[0] % 100 == 0:
-            print(total_loss)
-        iteration[0] += 1
-        return total_loss
-
-    optimizer.step(closure)
-
-
-# 학습된 결과 이미지를 확인합니다.
-
-gen_img = image_postprocess(generated[0].cpu()).data.numpy()
-
-plt.figure(figsize=(10,10))
-plt.imshow(gen_img)
-plt.show()
 
 
 
@@ -4688,6 +4473,7 @@ Nadam: Adam에 Momemtum 대신 NAG를 붙이자.
 * Hymenoptera_data
 * Python PIL, Pillow
 * glob
+* style transfer
 
 
     # torchvision.datasets
@@ -5014,6 +4800,207 @@ print(output)
 
 
 
+
+
+    # 스타일 트랜스퍼 style transfer
+ - 스타일 트랜스퍼는 전이학습의 단적인 예라고 할 수 있습니다.
+ - 학습된 필터들의 특성은 바로 범용성(여러 분야나 용도로 널리 쓰일 수 있는 특성)에 있습니다.
+   가로세로 대각선 필터들은 사실 작업 종류와는 관계없이 물체를 인식하는 데 모두 적용될 수 있기 때문에
+   학습된 모델에서 얻은 지식을 다른 작업에 전이할 수 있는 것입니다.
+
+    # 스타일
+ - 논문에서 스타일은 다른 필터 응답들 간의 연관성(correlations between the different filter response)라 서술
+ - 필터 활성도의 그람 행렬로 나타냄.
+ - 그람 행렬은 내적이 정의된 공간에서 벡터 v1, v2, vn,... 이 있을 때 가능한 모든 경우의 내적을 행렬로 나타낸 것
+
+    # 콘텐츠
+ - 스타일과 대비되는 형태를 의미
+ - 더 높은 레이어 내의 특성 응답(feature responses in higher layers of the network)이라 정의.
+ - 특성 응답은 활성화 지도를 의미하고, 더 높은 레이어라 한 것은 모델에서 어느 정도 깊이가 있는 지점을 의미
+
+총 손실은 콘텐츠 손실과 스타일 손실에 각각 가중치 α, β를 곱해서 합한 값이 됨. 왼쪽과 가운데를 비교해서 스타일 손실을 계산하고,
+가운데와 오른쪽을 비교해서 콘텐츠 손실을 계산함.
+스타일 손실은 모든 위치에서 발생하지만 콘텐츠 손실은 conv_4에서만(특정 깊이의 위치) 발생하는 것을 알 수 있습니다.
+스타일 손실을 모든 위치에서 계산하는 이유는 모델의 위치에 따라 수용 영역(receptive field)가 달라지기 때문입니다.
+ -> 좁은 영역의 스타일부터 넓은 영역의 스타일까지 다양하게 보겠다는 의미.
+     좁은 수용 영역에서 뽑은 스타일은 세밀한데 비해, 넓은 수용 영역에서 뽑아낸 스타일은 전체적인 스타일과 가까움.
+논문에서 con_v에서 콘텐츠 손실을 계산한 것은 형태를 보존하면서도 스타일을 잘 입힐 수 있도록 실험을 통해 적절한 위치를 찾은 것으로 보임.
+
+스타일 트랜스퍼를 구현할 때는 2차 미분 값까지 이용한 L-BFGS(limited-memory BFGS) 알고리즘을 사용하는 편
+
+
+## Image Style Transfer ##
+< 목차 >
+1. Settings
+ 1) Import required libraries
+ 2) Hyperparameter
+2. Data
+ 1) Directory
+ 2) Preprocessing Function
+ 3) Postprocessing Function
+3. Model & Loss Function
+ 1) Resnet
+ 2) Delete Fully Connected Layer
+ 3) Gram Matrix Function
+ 4) Model on GPU
+ 5) Gram Matrix Loss
+4. Train
+ 1) Prepare Images
+ 2) Set Targets & Style Weights
+ 3) Train
+5. Check Results
+
+
+# 컨텐츠 손실을 어느 지점에서 맞출것인지 지정해놓습니다.
+content_layer_num = 1
+image_size = 512
+epoch = 5000
+
+content_dir = "./images/content/Tuebingen_Neckarfront.jpg"
+style_dir = "./images/style/1280px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg"
+
+# 이미 학습된 ResNet 모델이 이미지넷으로 학습된 모델이기 때문에 이에 따라 정규화해줍니다.
+def image_preprocess(img_dir):
+    img = Image.open(img_dir)
+    transform = transforms.Compose([
+                    transforms.Resize(image_size),
+                    transforms.CenterCrop(image_size),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.40760392, 0.45795686, 0.48501961],
+                                         std=[1,1,1]),
+                ])
+    img = transform(img).view((-1,3,image_size,image_size))
+    return img
+
+
+# 정규화 된 상태로 연산을 진행하고 다시 이미지화 해서 보기위해 뺐던 값들을 다시 더해줍니다.
+# 또한 이미지가 0에서 1사이의 값을 가지게 해줍니다.
+
+def image_postprocess(tensor):
+    transform = transforms.Normalize(mean=[-0.40760392, -0.45795686, -0.48501961],
+                                     std=[1,1,1])
+    img = transform(tensor.clone())
+    img = img.clamp(0,1)
+    img = torch.transpose(img,0,1)
+    img = torch.transpose(img,1,2)
+    return img
+
+# 미리 학습된 resnet50를 사용합니다.
+resnet = models.resnet50(pretrained=True)
+for name,module in resnet.named_children():
+    print(name)
+
+# 레이어마다 결과값을 가져올 수 있게 forward를 정의합니다.
+
+class Resnet(nn.Module):
+    def __init__(self):
+        super(Resnet,self).__init__()
+        self.layer0 = nn.Sequential(*list(resnet.children())[0:1])
+        self.layer1 = nn.Sequential(*list(resnet.children())[1:4])
+        self.layer2 = nn.Sequential(*list(resnet.children())[4:5])
+        self.layer3 = nn.Sequential(*list(resnet.children())[5:6])
+        self.layer4 = nn.Sequential(*list(resnet.children())[6:7])
+        self.layer5 = nn.Sequential(*list(resnet.children())[7:8])
+
+    def forward(self,x):
+        out_0 = self.layer0(x)
+        out_1 = self.layer1(out_0)
+        out_2 = self.layer2(out_1)
+        out_3 = self.layer3(out_2)
+        out_4 = self.layer4(out_3)
+        out_5 = self.layer5(out_4)
+        return out_0, out_1, out_2, out_3, out_4, out_5
+
+# 그람 행렬을 생성하는 클래스 및 함수를 정의합니다.
+# [batch,channel,height,width] -> [b,c,h*w]
+# [b,c,h*w] x [b,h*w,c] = [b,c,c]
+
+class GramMatrix(nn.Module):
+    def forward(self, input):
+        b,c,h,w = input.size()
+        F = input.view(b, c, h*w)
+        G = torch.bmm(F, F.transpose(1,2))
+        return G
+
+# 모델을 학습의 대상이 아니기 때문에 requires_grad를 False로 설정합니다.
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print(device)
+
+resnet = Resnet().to(device)
+for param in resnet.parameters():
+    param.requires_grad = False
+
+# 그람행렬간의 손실을 계산하는 클래스 및 함수를 정의합니다.
+
+class GramMSELoss(nn.Module):
+    def forward(self, input, target):
+        out = nn.MSELoss()(GramMatrix()(input), target)
+        return out
+
+# 컨텐츠 이미지, 스타일 이미지, 학습의 대상이 되는 이미지를 정의합니다.
+
+content = image_preprocess(content_dir).to(device)
+style = image_preprocess(style_dir).to(device)
+generated = content.clone().requires_grad_().to(device)
+
+print(content.requires_grad,style.requires_grad,generated.requires_grad)
+
+# 각각을 시각화 합니다.
+
+plt.imshow(image_postprocess(content[0].cpu()))
+plt.show()
+
+plt.imshow(image_postprocess(style[0].cpu()))
+plt.show()
+
+gen_img = image_postprocess(generated[0].cpu()).data.numpy()
+plt.imshow(gen_img)
+plt.show()
+
+
+# 목표값을 설정하고 행렬의 크기에 따른 가중치도 함께 정의해놓습니다
+
+style_target = list(GramMatrix().to(device)(i) for i in resnet(style))
+content_target = resnet(content)[content_layer_num]
+style_weight = [1/n**2 for n in [64,64,256,512,1024,2048]]
+
+# LBFGS 최적화 함수를 사용합니다.
+# 이때 학습의 대상은 모델의 가중치가 아닌 이미지 자체입니다.
+# for more info about LBFGS -> http://pytorch.org/docs/optim.html?highlight=lbfgs#torch.optim.LBFGS
+
+optimizer = optim.LBFGS([generated])
+
+iteration = [0]
+while iteration[0] < epoch:
+    def closure():
+        optimizer.zero_grad()
+        out = resnet(generated)
+
+        # 스타일 손실을 각각의 목표값에 따라 계산하고 이를 리스트로 저장합니다.
+        style_loss = [GramMSELoss().to(device)(out[i],style_target[i])*style_weight[i] for i in range(len(style_target))]
+
+        # 컨텐츠 손실은 지정한 위치에서만 계산되므로 하나의 수치로 저장됩니다.
+        content_loss = nn.MSELoss().to(device)(out[content_layer_num],content_target)
+
+        # 스타일:컨텐츠 = 1000:1의 비중으로 총 손실을 계산합니다.
+        total_loss = 1000 * sum(style_loss) + torch.sum(content_loss)
+        total_loss.backward()
+
+        if iteration[0] % 100 == 0:
+            print(total_loss)
+        iteration[0] += 1
+        return total_loss
+
+    optimizer.step(closure)
+
+
+# 학습된 결과 이미지를 확인합니다.
+
+gen_img = image_postprocess(generated[0].cpu()).data.numpy()
+
+plt.figure(figsize=(10,10))
+plt.imshow(gen_img)
+plt.show()
 
 
 

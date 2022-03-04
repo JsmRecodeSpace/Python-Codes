@@ -857,6 +857,8 @@ glob.glob('c:/doit/mark*') # mark로 시작하는 파일을 모두 찾아서 읽
 
 ---------- 객체지향 프로그래밍 OOP: Object Oriented Programming ----------
 
+
+     # 클래스
  - 클래스는 객체를 정의한 것이고,
    객체는 클래스에 정의된 내용대로 메모리에 생성한 실제 데이터를 의미한다.
  - 클래스로부터 객체를 만드는 작업을 클래스의 인스턴스화라고 한다.
@@ -876,6 +878,35 @@ glob.glob('c:/doit/mark*') # mark로 시작하는 파일을 모두 찾아서 읽
 
  - 생성자 __init__ : 객체를 생성할 때, 객체의 속성들을 초기화해준다.
    소멸자 __del__ : 객체를 삭제할 때 사용한다.
+
+
+
+    # 상속
+ - 상속이란 기존에 만들었던 프로그램의 기능을 그대로 상속받으면서 새로운 기능을 추가하는 것을 의미한다.
+
+ - 파이썬에서 상속은 class subclass(superclass)와 같이 정의하려는 하위클래스 뒤의 괄호에 상위클래스의 이름을 넣어 이루어진다.
+   이후, 하위클래스에서 상위클래스의 기능에 접근을 할 때에는 super라는 키워드를 통한다.
+
+ - 상속을 받은 하위클래스에서 생성자를 정의할 때, 상위클래스의 생성자를 활용하여 쉽게 정의할 수 있다.
+
+ - 상속관계의 두 클래스에서 동일한 이름의 메소드를 작성하는 행위를 '오버라이딩'이라 한다.
+
+ - 클래스도 여러 개의 클래스를 상속받을 수 있다. 두 개의 클래스의 공통된 메소드를 호출하는 경우,
+   자식클래스 선언시 먼저 언급한 부모클래스가 우선순위를 얻게 된다.
+
+
+
+    # 추상클래스
+
+ - 공통적인 특징들을 명시적으로 선언한 클래스를 추상클래스라고 한다.
+
+ - 파이썬에서 추상클래스는 ABC(Abstract Base Class) 클래스를 통하여 사용되며,
+   ABC 클래스는 명시적인 메소드를 선언하여 해당 클래스를 상속받는 서브클래스가 반드시 이들을 구현하도록 강제한다.
+
+ - 추상클래스의 정의는 from abc import * 모듈의 적용을 통해 이루어진다.
+   추상 메소드 위에는 @abstractmethod를 붙여서 추상 메소드로 지정해야 한다.
+
+
 
 
 
@@ -959,6 +990,35 @@ truck.upSpeed(200)
 
 print('승용차 ->', end='')
 sedan1.upSpeed(200)
+
+
+
+	    # __str__(self) - Ex 1
+ - __str__(self)는 객체의 문자열을 리턴 하는 메소드이다.
+class Student:
+    def __init__(self, name, age):
+        self.university = 'KMU'
+        self.name = name
+        self.age = age
+        self.isStudying = True
+        self.studyHour = 0
+
+    def study(self):
+        if self.isStudying:
+            self.studyHour += 1
+
+    def hourofstudy(self):
+        print(f'{self.name} 현재 공부 시간: {self.studyHour}시간')
+
+    def __str__(self):
+        sentence = f'이름 {self.name}, 나이: {self.age}, 학교: {self.university}, 공부시간: {self.studyHour}'
+        return sentence
+
+student01 = Student('Seongmin', 26)
+student01.study()
+student01.study()
+print(student01) -> 이름 Seongmin, 나이: 26, 학교: KMU, 공부시간: 2
+
 
 
 
