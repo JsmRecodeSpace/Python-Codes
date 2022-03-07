@@ -315,6 +315,17 @@ pickle.dump(data, f)
 pickle.load(f)
 
 
+
+
+	# 진법
+# 2진법: bin()
+bin(value)
+# 8진법: oct()
+oct(value)
+# 16진법: hex()
+hex(value)
+
+
 ---------- Function ----------
 
 # 재귀함수 Recursion Function: 자기 자신을 호출하는 함수
@@ -1018,6 +1029,8 @@ student01 = Student('Seongmin', 26)
 student01.study()
 student01.study()
 print(student01) -> 이름 Seongmin, 나이: 26, 학교: KMU, 공부시간: 2
+
+
 
 
 
