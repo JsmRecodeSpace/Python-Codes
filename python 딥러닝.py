@@ -1305,6 +1305,7 @@ model = model.cuda()
  - 다른 데이터셋에 적용하기 위해 모델의 뒷단을 새롭게 만듭니다. (Add fully connected layer )
 import torchvision.models as models
 resnet50 = models.resnet50(pretrained=True)
+ - 이렇게 불러온 모델은 named_children이라는 함수를 가지고 있는데 이 함수가 하는 일은 ResNet 모델의 직속 자식child 노드들을 불러오는 것
 for name,module in resnet.named_children():
     print(name)
 
@@ -1313,7 +1314,7 @@ for name,module in resnet.named_children():
 class Resnet(nn.Module):
     def __init__(self):
         super(Resnet,self).__init__()
-        self.layer0 = nn.Sequential(*list(resnet50.children())[0:-1])
+        self.layer0 = nn.Sequential(*list(resnet50.children())[0:-1]) # 리스트 언패킹
         self.layer1 = nn.Sequential(
             nn.Linear(2048,500),
             nn.BatchNorm1d(500),
@@ -2912,27 +2913,14 @@ def evaluate(model, test_loader):
 
     # Usages of RNN
 one to one: 일반적인 neural network: 하나의 입력에 하나의 출력이 나옴
-
 one to many: 이미지 데이터 하나가 나오고 출력값으로는 문장이 나온다.
  - ex: image captioning: image -> sequence of words
-
 many to one: 문장이 입력되고 하나의 값이 나옴
  - ex: Sentiment Classification: sequence of words ->  sentiment
-
 many to many: 문장이 들어오고 문장이 출력되는 형태
  -  Machine Translation: sequence of words -> sequence of words
-
 many to many: 여러개의 input이 있고 들어올때마다 새로 output들이 나오는 다른 버전
  - Video classification on frame level
-
-
-    # RNN applications
-- Language Modeling
-- Speech Recognition
-- Machine Traslation
-- Conversation Modeling / Question Answering
-- Image / Video Captioning
-- Image / Music / Dance Generation
 
 
 
@@ -2953,123 +2941,78 @@ many to many: 여러개의 input이 있고 들어올때마다 새로 output들�
 
 
 
+    # Embedding, 임베딩
+ - 알파벳이나 단어 같은 기본 단위 요소들을 일정한 길이를 가지는 벡터 공간에 투영하는 것
+ - 워드 임베딩은 일정한 크기의 벡터에 단어들을 투영하는 방법
 
-    # RNN hello - Ex
-input_size = 4  # 4개의 차원을 받는다: h, e, l, o
-hidden_size = 2 # hidden state의 벡터 디멘션을 정의
-                # = 몇 차원의 출력(output)을 원하는지
-                # 즉, output size = hidden size
+# word2vec
+ - 단어들을 벡터화 하는 것을 word2vec이라고 함
+ - 임베딩의 대표적인 기법으로는 CBOW(continuous bag of words)와 skip-gram이 있음
+ - CBOW 방식은 주변 단어들로부터 가운데 들어갈 단어가 나오도록 임베딩하는 방식,
+   예를 들면 a,b,d,e 단어가 들어왔을 때 은닉층을 하나 통과하면 c가 나오도록 학습하고 그 은닉층의 벡터를 임베딩으로 사용하는 것임.
+   그러면 주위 단어들과 c와의 관계가 학습이 되고, 문장 또는 문서의 모든 문장을 위와 같은 방식으로 학습하면
+   그 문서에서 사용한 단어들이 의미적으로 임베딩됨.
+ - skip-gram 모델은 CBOW와 반대로 중심 단어로부터 주변 단어들이 나오도록 모델을 학습하여 임베딩 벡터를 얻는 방식
 
-# 1-hot encoding
-h = [1, 0, 0, 0]
-e = [0, 1, 0, 0]
-l = [0, 0, 1, 0]
-o = [0, 0, 0, 1]
-input_data_np = np.array([[h, e, l, l, o],
-                          [e, o, l, l, l],
-                          [l, l, e, e, l]
-                         ], dtype = np.float32)
-
-input_data = torch.Tensor(input_data_np)
-rnn = torch.nn.RNN(input_size, hidden_size)
-outputs, _status = rnn(input_data)
-
-    # RNN hello - Ex 설명
-input_data.shape  -> (-, -, 4)
-output_data.shape -> (-, -, 2)
-        # Sequence Length
-hello를 예를 들면 sequence length = 5이다.
-이러한 sequence length는 PyTorch에서 자동적으로 계산된다.
-input_data.shape -> (-, 5, 4)  가운데 5가 sequence length이다.
-output_data.shpae -> (-, 5, 2)
-# Batch Size
-여러개의 데이터를 하나의 batch로 묶어서 모델에게 학습시킴
-batch size역시 PyTorch에서 자동으로 파악함
-input_data.shape -> (3, 5, 4)
-output_data.shape -> (3, 5, 2)
-# ----- 따라서 input_data와 hidden_size만 잘 정의하여 주면 된다!!!!
+# nn.Embedding
+ - Torch.nn에는 torch.nn.Embedding이라는 클래스가 있는데, 이 클래스를 사용하면 임베딩을 쉽게 생성하고 학습시킬 수 있음.
+num_embeddings, embedding_dim : 각각 사용할 문자나 단어의 가지 수 및 임베딩할 벡터 공간의 크기를 의미
+ - 입력 데이터로 문자가 들어오면 이는 먼저 문자 사전에 의해 인덱스로 변환되고,
+   이 인덱스를 embedding 인스턴스에 전달하면 벡터가 결과로 나오게 됨. 이걸 가지고 RNN, LSTM, GRU를 통해 모델을 학습할 수 있게 됨
 
 
 
-    # RNN hihello Ex
-# Random seed to make results deterministic and reproducible
-torch.manual_seed(0)
-# declare dictionary
-char_set = ['h', 'i', 'e', 'l', 'o']
-# hyper parameters
-input_size = len(char_set) # 몇 차원의 input을 받을지 -> char_set의 유니크 값의 개수
-hidden_size = len(char_set)
-learning_rate = 0.1
-# data setting
-x_data = [[0, 1, 0, 2, 3, 3]]
-x_one_hot = [[[1, 0, 0, 0, 0],
-              [0, 1, 0, 0, 0],
-              [1, 0, 0, 0, 0],
-              [0, 0, 1, 0, 0],
-              [0, 0, 0, 1, 0],
-              [0, 0, 0, 1, 0]]]
-y_data = [[1, 0, 2, 3, 3, 4]]
-# transform as torch tensor variable
-X = torch.FloatTensor(x_one_hot)
-Y = torch.LongTensor(y_data)
-# declare RNN
-rnn = torch.nn.RNN(input_size, hidden_size, batch_first=True)  # batch_first guarantees the order of output = (B, S, F): batch_size, Sequence_length, Feature
-# loss & optimizer setting
-criterion = torch.nn.CrossEntropyLoss()
-optimizer = optim.Adam(rnn.parameters(), learning_rate)
-# start training
-for i in range(100):
+    # RNN model - Ex 1
+class RNN(nn.Module):
+    def __init__(self, input_size, embedding_size, hidden_size, output_size, num_layers=1):
+        super(RNN, self).__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.output_size = output_size
+        self.num_layers = num_layers
+        self.embedding_size = embedding_size
+
+        self.encoder = nn.Embedding(input_size, embedding_size)
+        self.rnn = nn.RNN(embedding_size, hidden_size, num_layers)
+        # self.rnn = nn.GRU(embedding_size, hidden_size, num_layers)
+        self.decoder = nn.Linear(hidden_size, output_size)
+
+    def forward(self, input, hidden):
+        out = self.encoder(input.view(1, -1))
+        out, hidden = self.rnn(out, hidden)
+        out = self.decoder(out,view(batch_size, -1))
+        return out, hidden
+
+    def init_hidden(self):
+        hidden = torch.zeros(self.num_layers, batch_size, hidden_size)
+        return hidden
+
+model = RNN(input_size=n_characters,
+            embedding_size = embedding_size,
+            hidden_size = hidden_size,
+            output_size = n_characters,
+            num_layers=2)
+
+inp = char_tensor("A")
+hidden = model.init_hidden()
+out, hidden = model(inp, hidden)
+
+for  i in range(num_epochs):
+    total = char_tensor(random_chunk())
+    inp = total[:-1]
+    label = total[1:]
+    hidden = model.init_hidden()
+
+    loss = torch.tensor([0]).type(torch.FloatTensor)
     optimizer.zero_grad()
-    outputs, _status = rnn(X)
-    loss = criterion(outputs.view(-1, input_size), Y.view(-1))
+    for j in range(chunk_len-1):
+        x = inp[j]
+        y_ = label[j].unsqueeze(0).type(torch.LongTensor)
+        y, hidden = model(x, hidden)
+        loss += loss_func(y, y_)
+
     loss.backward()
     optimizer.step()
-
-    result = outputs.data.numpy().argmax(axis=2)
-    result_str = ''.join([char_set[c] for c in np.squeeze(result)])
-    print(i, "loss: ", loss.item(), "prediction: ", result, "true Y: ", y_data, "prediction str: ", result_str)
-
-
-
-    # RNN charseq Ex
-# Random seed to make results deterministic and reproducible
-torch.manual_seed(0)
-sample = " if you want you"
-# make dictionary
-char_set = list(set(sample))
-char_dic = {c: i for i, c in enumerate(char_set)}
-print(char_dic)
-# hyper parameters
-dic_size = len(char_dic)
-hidden_size = len(char_dic)
-learning_rate = 0.1
-# data setting
-sample_idx = [char_dic[c] for c in sample]  # sample의 글자를 인덱스로 숫자화시킴
-x_data = [sample_idx[:-1]]
-x_one_hot = [np.eye(dic_size)[x] for x in x_data]	 # np.eye(size)으로 size에 해당하는 만큼의 항등벡터를 만듦
-					 # 그 중 1에 해당하는 값을 뒤에 인덱스로 알려주면 해당 인덱스값이 1이고 나머지는 0으로 채워지는 벡터값을 반환해줌
-y_data = [sample_idx[1:]]
-# transform as torch tensor variable
-X = torch.FloatTensor(x_one_hot)
-Y = torch.LongTensor(y_data)
-# declare RNN
-rnn = torch.nn.RNN(dic_size, hidden_size, batch_first=True)
-# loss & optimizer setting
-criterion = torch.nn.CrossEntropyLoss()
-optimizer = optim.Adam(rnn.parameters(), learning_rate)
-# start training
-for i in range(50):
-    optimizer.zero_grad()
-    outputs, _status = rnn(X)
-    loss = criterion(outputs.view(-1, dic_size), Y.view(-1))
-    loss.backward()
-    optimizer.step()
-
-    result = outputs.data.numpy().argmax(axis=2)
-    result_str = ''.join([char_set[c] for c in np.squeeze(result)])
-    print(i, "loss: ", loss.item(), "prediction: ", result, "true Y: ", y_data, "prediction str: ", result_str)
-
-
 
 
 
@@ -3102,6 +3045,34 @@ for i in range(50):
 
 # 은닉 상태의 업데이트
  - 새로운 은닉 상태는 업데이트된 셀 상태 값을 하이퍼볼릭 탄젠트 함수를 통과시킨 -1에서 1사이의 비중을 곱한 값으로 생성됨.
+
+
+    # LSTM model - Ex 1
+class RNN(nn.Module):
+    def __init__(self, input_size, embedding_size, hidden_size, output_size, num_layers=1):
+        super(RNN, self).__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.output_size = output_size
+        self.num_layers = num_layers
+        self.embedding_size = embedding_size
+
+        self.encoder = nn.Embedding(input_size, embedding_size)
+        self.rnn = nn.LSTM(embedding_size, hidden_size, num_layers)
+        self.decoder = nn.Linear(hidden_size, output_size)
+
+    def forward(self, input, hidden, cell):
+        out = self.encoder(input.view(batch_size, -1))
+        out, (hidden, cell)) = self.rnn(out, (hidden, cell))
+        out = self.decoder(out,view(batch_size, -1))
+        return out, hidden, cell
+
+    def init_hidden(self):
+        hidden = torch.zeros(num_layers, batch_size, hidden_size)
+        cell = torch.zeros(num_layers, batch_size, hidden_size)
+        return hidden, cell
+# 구현적 차이는 셀 유무 정도라고 볼 수 있음
+
 
 
 
@@ -3854,11 +3825,17 @@ def to_Mish(model):
  - 어떤 제약조건을 추가로 걸어줌으로써 오버피팅을 해결하려는 기법
     -> 이 제약조건은 주로 손실함수(loss function)에 추가된다.
  - 모델이 과적합되게 학습하지 않고 일반성을 가질 수 있도록 규제 하는 것.
-    -> 오버피팅될 때 오버피팅 구간을 벗어날 수 있도록 해준다.
+    -> 오버피팅될 때 정형화 값(λ)을 키울 수록 오버피팅 구간을 벗어날 수 있도록 해준다.
  - 하늘색 선(고차원 방정식의 선)은 오버피팅 될 수 있으므로 빨간색 점선(직선)으로 모델이 설정될 수 있게 해주는 작업이다.
  - 데이터의 feature에는 손대지 않고 최대한 하늘색 선을 펴주려면 기울기(가중치, w)를 건드리면 된다.
  - 이때 이용하는 정형화의 대표적인 방법이 Lasso(L1정형화), Ridge(L2정형화)이다.
     -> 이 정형화 식을 L1 또는 L2 페널티라고도 한다.
+ - L1, L2 정형화의 식을 보면 식을 최소화하는 w를 찾는 데 앞에서 살펴봤던 평균제곱오차 말고도 λ의 변수의 합을 곱한 항이 추가된 것을 알 수 있음
+   요약하면 평균제곱오차와 정형화 식의 합이라고 할 수 있고, 이 정형화 식은 λ 곱하기 변수의 절댓값 합 또는 제곱의 합이라고 할 수 있음.
+   이 정형화 식을 L1 또는 L2 페널티라고도 함. 전체 식을 최소하려면 w는 작아져야 함.
+   즉, 데이터와 예측값의 오차를 줄이되 작은 w값으로 이를 달성하는 것이 목표가 됨.
+   변수 w가 작아지게 되면 함수의 형태는 단순해지고 주어진 데이터에 오버티핑하는 정도 역시 줄어들게 됨.
+
 
     # Lasso
  - Lasso (Least absolute shrinkage and selection operator)
@@ -3904,6 +3881,7 @@ def to_Mish(model):
     -> 경사하강법의 가중치 업데이트 과정에서 가중치 부식을 주는 것
   - 모델이 오버피팅할 경우, 적절한 강도로 정형화를 걸어주면 이를 어느정도 극복할 수 있습니다.
     # weight decay Ex
+ - 최적화 함수에 가중치 부식 인수를 지정하는 방법
  - The weight_decay parameter adds a L2 penalty to the cost which can effectively lead to to smaller model weights.
 optimizer = optim.SGD(model.parameters(), lr=learning_rate, weight_decay=0.1)
 
@@ -4084,6 +4062,8 @@ scheduler = optim.lr_scheduler.LambdaLR(optimizer=optimizer,
                                         lr_lambda=lambda epoch: 0.95 ** epoch)
 
    # lr scheduler Ex - 2
+loss_func = nn.CrossEntropyLoss()
+optimizer = torch.optim.SGD(model.parameters(), lr = learning_rate)
 scheduler = lr_scheduler.StepLR(optimizer, step_size=1, gamma= 0.99)  # 지정한 스텝 단위로 학습률에 감마를 곱해 학습률을 감소시킵니다.
 scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[10,30,80], gamma= 0.1)  # 지정한 스텝 지점(예시에서는 10,30,80)마다 학습률에 감마를 곱해줍니다.
 scheduler = lr_scheduler.ExponentialLR(optimizer, gamma= 0.99) # 매 epoch마다 학습률에 감마를 곱해줍니다.
@@ -4673,7 +4653,11 @@ data_transforms = {
         transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
 }
-# ImageFolder라는 함수를 이용해 따로 이미지-라벨 쌍을 만들지 않고 폴더에 저장하는것만으로 쉽게 이미지-라벨 쌍을 만들 수 있습니다
+
+
+
+ -  ImageFolder라는 함수를 이용해 따로 이미지-라벨 쌍을 만들지 않고 폴더에 저장하는것만으로 쉽게 이미지-라벨 쌍을 만들 수 있습니다
+    또한 제공하는 transform 함수들을 넣어서 적용시킬 수 있음
 ex)
 root/dog/xxx.png
 root/dog/xxy.png
