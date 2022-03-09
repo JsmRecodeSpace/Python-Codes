@@ -6,6 +6,8 @@
 * 머신러닝 혼합 아이디어
 * Import codes
 * 변수 생성
+* 머신러닝 분류 기본 스크립트
+
 
 ---------- ML, Machine Learning ----------
 
@@ -2825,7 +2827,7 @@ plt.rc('axes', unicode_minus=False)
 from sklearn.preprocessing import LabelEncoder
 
 
-# Modeling & Tuning
+# Cross Validation
 from sklearn.model_selection import KFold
 n_splits=5; seed = 42
 kfold = KFold(n_splits=n_splits, shuffle=True, random_state=seed)
@@ -2870,6 +2872,7 @@ from scipy.stats.mstats import gmean
 
     # Cross Validation
 from sklearn.model_selection import KFold #for K-fold cross validation
+from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import cross_val_score #score evaluation
 from sklearn.model_selection import cross_val_predict #prediction
 scores = cross_val_score(clf, X, y, cv=5, scoring='f1_macro') # model, train, target, cross validation
@@ -2906,6 +2909,8 @@ from sklearn.neighbors import KNeighborsRegressor
     # SVM
 from sklearn.svm import SVC
 from sklearn.svm import SVR
+    # MLP
+from sklearn.neural_network import MLPClassifier
     # Ridge, Lasso, ElasticNet
 from sklearn.linear_model import Ridge
 from sklearn.linear_model import Lasso
@@ -3492,14 +3497,87 @@ features.append(f); f
 
 
 
+---------- 머신러닝 분류 기본 스크립트 ----------
+
+
+# Data Handling
+import pandas as pd
+import numpy as np
+from tqdm import tqdm
+
+
+# Cross Validation
+from sklearn.model_selection import KFold
+from sklearn.model_selection import StratifiedKFold
+n_splits=5; seed = 42
+kfold = KFold(n_splits=n_splits, shuffle=True, random_state=seed)
+skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)
+from sklearn.model_selection import cross_val_score
+
+
+# Models
+from sklearn.ensemble import ExtraTreesClassifier
+from sklearn.ensemble import GradientBoostingClassifier
+from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
+from catboost import CatBoostClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+
+
+# Evaluation
+from sklearn.metrics import accuracy_score
 
 
 
+def get_model_cv_prediction(model, feature_data, y_target):
+    scores = cross_val_score(model, feature_data, y_target, scoring='accuracy', cv=skf, n_jobs=-1)
+    avg_score = np.mean(scores)
+    print(f'{model.__class__.__name__} 모델의 평균 성능: {avg_score:.4f}')
 
 
+def fit_model(model, train, target):
+    scores = []
+    for iter_count, (train_idx, valid_idx) in enumerate(skf.split(train, target)):
+
+        X_train, X_valid = train[train_idx], train[valid_idx]
+        y_train, y_valid = target[train_idx], target[valid_idx]
+
+        model.fit(X_train, y_train)
+
+        pred = model.predict(X_valid)
+        score = accuracy_score(y_valid, pred)
+        scores.append(score)
+    return model, np.mean(scores)
 
 
+train = pd.read_csv('./hand_gesture_data/train.csv')
+test = pd.read_csv('./hand_gesture_data/test.csv')
+sample_submission = pd.read_csv('./hand_gesture_data/sample_submission.csv')
 
+print('train shape: ', train.shape)
+print('test shape: ', test.shape)
+print('sample submission shape: ', sample_submission.shape)
+
+y = train.target
+X = train.drop(['id', 'target'], axis=1)
+
+
+extra_clf = ExtraTreesClassifier(random_state=42, n_jobs=-1)
+gbm_clf = GradientBoostingClassifier(random_state=42)
+xgb_clf = XGBClassifier(random_state=42, n_jobs=-1)
+lgb_clf = LGBMClassifier(random_state=42, n_jobs=-1)
+cat_clf = CatBoostClassifier(random_state=42, verbose=False)
+lr_clf = LogisticRegression(random_state=42, n_jobs=-1)
+knn_clf = KNeighborsClassifier(n_jobs=-1)
+svm_clf = SVC(random_state=42)
+
+models = [extra_clf, gbm_clf, xgb_clf, lgb_clf, cat_clf, lr_clf, knn_clf]
+
+
+for model in models:
+    get_model_cv_prediction2(model, X, y)
 
 
 

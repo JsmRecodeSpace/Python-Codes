@@ -75,6 +75,36 @@ sorted(L, key=lambda x: len(x)) # 정렬의 키를 지정할 수 있다. 예시�
 L = [{'name': 'John', 'score':83}, {'name':'Paul', 'score':92}]
 L.sort(key=lambda x: x['score'], reverse=True) # 레코드들을 점수 높은 순으로 정렬
 
+	# sorted - Ex 1
+a = [(4,0), (4,3), (4,2), (3,2), (2,1), (1,0)]
+# https://otugi.tistory.com/164?category=386145
+# key인자에 lambda 함수를 넘겨주면 반환값을 가지고 비교해 정렬
+# 이 때, key로 전달되지 않은 요소에 대해선 정렬하지 않음
+c = sorted(a, key=lambda x : x[0])
+print(c)    # [(1, 0), (2, 1), (3, 2), (4, 0), (4, 3), (4, 2)]
+d = sorted(a, key=lambda x : x[1])
+print(d)    # [(4, 0), (1, 0), (2, 1), (4, 2), (3, 2), (4, 3)]
+
+# 정렬 기준으로 다중 조건을 넘겨줄 수도 있다
+# 첫 번째 인자를 기준으로 오름차순 정렬을 먼저 한다.
+# 그 결과를 가지고 두 번째 인자를 기준으로 내림차순 정렬(-를 붙이면 내림차순 정렬)
+e = sorted(a, key = lambda x : (x[0], -x[1]))
+print(e)    # [(1, 0), (2, 1), (3, 2), (4, 3), (4, 2), (4, 0)]
+
+	# sort - Ex 1
+ - sort()를 이용해도 동일하게 사용할 수 있습니다.
+array = [('b', 1, '나'), ('c', 2, '라'), ('a', 3, '다'), ('a', 7, '가'), ('c', 3, '가')]
+array.sort(key=lambda x: (x[0], x[1]))
+print(array)
+array.sort(key=lambda x: (x[0], x[2]))
+print(array)
+# 출력
+# [('a', 3, '다'), ('a', 7, '가'), ('b', 1, '나'), ('c', 2, '라'), ('c', 3, '가')]
+# [('a', 7, '가'), ('a', 3, '다'), ('b', 1, '나'), ('c', 3, '가'), ('c', 2, '라')]
+
+
+
+
 
 
 # else문 줄이기
@@ -548,6 +578,33 @@ fruit.clear() # 사전을 전부 비우고 싶다면, .clear() 메소드를 사�
 
 # Dictionary comprehension
 {i: np.sin(i) for i in range(1,21)}
+
+
+
+	# Dicionary default 사전 기본 값 지정
+# https://www.daleseo.com/python-collections-defaultdict/
+ - 일반적인 사전 기본값 처리
+   아래 코드는 주어진 단어에 들어있는 각 알파벳 글자의 수를 세어서 사전에 저장해주는 함수입니다.
+
+def countLetters(word):
+    counter = {}
+    for letter in word:
+        if letter not in counter:
+            counter[letter] = 0
+        counter[letter] += 1
+    return counter
+
+ - 나은 방법: dict.setdefault
+   위와 같은 if 조건절을 피할 수 있도록 파이썬의 사전(dictionary) 자료구조는 setdefault 함수를 제공합니다.
+   첫번째 인자로 키(key)값, 두번째 인자로 기본값(default value)를 넘기면 되는데요.
+
+def countLetters(word):
+    counter = {}
+    for letter in word:
+        counter.setdefault(letter, 0)
+        counter[letter] += 1
+    return counter
+
 
 
 
