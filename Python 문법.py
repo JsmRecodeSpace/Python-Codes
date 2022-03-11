@@ -279,6 +279,18 @@ next(it, 10)
 "{0:=^10}".format("hi") -> '====hi====' : 공백 채우기, ^바로 앞에 넣어야 함
 
 
+	# format :> 문법
+# https://dojang.io/mod/page/view.php?id=2300
+ - 다음과 같이 >을 넣어서 오른쪽을 가리키도록 만들면 문자열을 지정된 길이로 만든 뒤
+   오른쪽으로 정렬하고 남는 공간을 공백으로 채웁니다.
+ - '{인덱스:>길이}'.format(값)
+'{0:>10}'.format('python')
+'    python'
+	# :> - Ex 1
+ print_msg = (f'[{epoch:>{epoch_len}}/{n_epochs:>{epoch_len}}] ' +
+                     f'train_loss: {train_loss:.5f} ' +
+                     f'valid_loss: {valid_loss:.5f}')
+
 
 	# 예외 처리
  - try 블록 수행중 오류가 발생하면 except 블록이 수행됨.
