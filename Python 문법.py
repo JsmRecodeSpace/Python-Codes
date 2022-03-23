@@ -399,6 +399,8 @@ def cos_similarity(v1, v2):
 ## List Methods
 x.append('f') # x에 f를 추가
 x.pop() # 리스트에서 마지막 값을 제거
+ - pop() 메소드에 숫자로 인덱스를 줄 경우, 인덱스의 값을 리스트에서 제거 + 반환하게 됨
+ - Queue에서 dequeue 구현시 pop(0)을 사용함이 예시임.
 x.insert() # 지정한 위치에 값을 삽입한다. (리스트명.insert(위치, 값))
 x.remove() # 리스트에서 지정한 값을 삭제. 지정 값이 여러개일 경우 첫번째 값만 삭제. (리스트명.remove(지울값))
 x.extend() # 리스트 뒤에 리스트를 추가한다. 리스트 + 리스트와 동일. (리스트명.extend(추가 리스트))
