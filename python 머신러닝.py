@@ -1033,7 +1033,7 @@ def fit_best_model(model, train, target, new_kfold):
 
 from sklearn.tree import DeicisionTreeRegressor
 from sklearn.tree import DecisionTreeClassifier
-dt_clf = DecisionTreeClassifier(random_state=42, n_jobs=-1)
+dt_clf = DecisionTreeClassifier(random_state=42)
 dt_clf.fit(X_train, y_train)
 dt_pred = dt_clf.predict(X_test)
 print(f'DecisionTreeClassifier 정확도 : {accuracy_score(y_test, dt_pred):.4f}')
