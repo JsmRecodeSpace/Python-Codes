@@ -621,6 +621,46 @@ def countLetters(word):
 
 
 
+	# dictionary 정렬, 사전 정렬 [방법 - 1]
+# https://kkamikoon.tistory.com/138
+
+ - sorted() 함수 사용 및 operator를 통한 인자값 설정
+import operator
+dict = {'A' : 1, 'D' : 4, 'C' : 3, 'B' : 2}
+sdict = sorted(dict.items(), key=operator.itemgetter(0))
+# 인자값에 있는 key=operator.itemgetter(0)는 정렬하고자 하는 키 값을 0번째 인덱스 기준으로 하겠다는 것입니다.
+# 0번째 인자는 Key입니다.
+>> [('A', 1), ('B', 2), ('C', 3), ('D', 4)]
+
+
+ - sorted() 함수 사용 및 operator를 통한 인자값 설정
+import operator
+dict = {'A' : 1, 'D' : 4, 'C' : 3, 'B' : 2}
+sdict = sorted(dict.items(), key=operator.itemgetter(1))
+# 인자값에 있는 key=operator.itemgetter(1)는 정렬하고자 하는 키 값을 1번째 인덱스 기준으로 하겠다는 것입니다.
+# 1번째 인자는 Value입니다.
+>> [('A', 1), ('B', 2), ('C', 3), ('D', 4)]
+
+
+	# dictionary 정렬, 사전 정렬 [방법 - 2]
+#https://codechacha.com/ko/python-sorting-dict/
+ - Key를 기준으로 정렬 (내림차순)
+내림차순으로 정렬하려면 sorted()에 다음과 같이 reverse = True를 인자로 전달해야 합니다. 여기서 lambda가 인자로 전달되는데 item[0]는 dict의 key를 의미합니다.
+sorted_dict = sorted(my_dict.items(), key = lambda item: item[0], reverse = True)
+print(sorted_dict)
+[('e', 1), ('d', 2), ('c', 3), ('b', 2), ('a', 1)]
+
+ - Value를 기준으로 정렬 (오름차순)
+다음과 같이 sorted()를 사용하여 Value를 기준으로 정렬할 수 있습니다. 인자로 lambda가 전달되는데 item[1]은 dict의 Value를 의미합니다.
+sorted_dict = sorted(my_dict.items(), key = lambda item: item[1])
+print(sorted_dict)
+[('a', 1), ('e', 1), ('b', 2), ('d', 2), ('c', 3)]
+
+	# dictionary 정렬, 사전 정렬 [방법 - 3]
+ - Value를 기준으로 정렬 (내림차순)
+sorted(ratioDict, key=lambda x : ratioDict[x], reverse=True)
+
+
 
 
 ---------- Set ----------
