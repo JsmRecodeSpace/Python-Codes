@@ -1,6 +1,6 @@
 
     # SQL 쿼리
-SELECT (*), (COUNT, MIN, MAX), IFNULL()
+SELECT (*), (COUNT, MIN, MAX), IFNULL(), DISTINCT, DATE_FORMAT, (LEFT, MID, RIGHT)
 FROM
 WHERE (IS, IS NOT, =, !=), (IN, )
 GROUP BY (1, 2,),
@@ -53,6 +53,20 @@ LIKE
 - PERIOD_DIFF(P1,P2) : 두개의 인자 사이의 달 수를 반환한다. 두개의 인자 모두 형식은 YYMM 또는 YYYYMM 이어야 한다.
 
 
+- DATE_FORMAT(date,format) : 날짜를 해당 형식의 문자열로 변환하여 반환한다.
+형식은 다음과 같다.
+%M (달 이름), %W (요일 이름), %Y (YYYY 형식의 년도), %y (YY 형식의 년도),
+%a (요일 이름의 약자), %d (DD 형식의 날짜), %e (D 형식의 날짜),
+%m (MM 형식의 날짜), %c (M 형식의 날짜), %H (HH 형식의 시간, 24시간 형식),
+%k (H 형식의 시간, 24시간 형식), %h (HH 형식의 시간, 12시간 형식), %i (MM 형식의 분), %p (AM 또는 PM)
+예 : select DATE_FORMAT('1997-10-04 22:23:00', '%W %M %Y');
+select DATE_FORMAT('1997-10-04 22:23:00', '%H:%i:%s');
+select DATE_FORMAT('1997-10-04 22:23:00', '%D %y %a %d %m %b %j');
+select DATE_FORMAT('1997-10-04 22:23:00', '%H %k %I %r %T %S %w');
+SELECT ANIMAL_ID, NAME, DATE_FORMAT(DATETIME, '%Y-%m-%d')
+
+
+
 
     # 조건절
 # IFNULL
@@ -70,11 +84,39 @@ SELECT
     INS.SEX_UPON_INTAKE
 FROM ANIMAL_INS INS
 
-# IF
+
+
+    # IF
 # IF - Ex 1
 SELECT animal_type, if(name is null,"No name",name), sex_upon_intake
 from animal_ins
 order by animal_id;
+
+
+
+    # 문자열 부분 가져오기 (LEFT, MID, RIGHT)
+# https://extbrain.tistory.com/62
+ - LEFT : 문자에 왼쪽을 기준으로 일정 갯수를 가져오는 함수.
+ - MID : 문자에 지정한 시작 위치를 기준으로 일정 갯수를 가져오는 함수.
+ - RIGHT : 문자에 오른쪽을 기준으로 일정 갯수를 가져오는 함수.
+LEFT(문자, 가져올 갯수);
+MID(문자, 시작 위치, 가져올 갯수);
+-- 또는 SUBSTR(문자, 시작 위치, 가져올 갯수);
+-- 또는 SUBSTRING(문자, 시작 위치, 가져올 갯수);
+RIGHT(문자, 가져올 갯수);
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
