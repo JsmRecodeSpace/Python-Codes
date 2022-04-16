@@ -1,11 +1,11 @@
 
     # SQL 쿼리
 SELECT (*), (COUNT, MIN, MAX), IFNULL(), DISTINCT, DATE_FORMAT, (LEFT, MID, RIGHT)
-FROM
-WHERE (IS, IS NOT, =, !=), (IN, )
+FROM (INNER JOIN, LEFT JOIN, RIGHT JOIN, FULL OUTER JOIN) (ON, USING) (SUB QUERY)[ALIAS]
+WHERE (IS, IS NOT, =, !=), (IN, NOT IN) (조건절) (BETWEEN AND)
 GROUP BY (1, 2,),
-HAVING (> ,>=, <, <=)               # GROUP BY에서 조건을 줄 때는 HAVING을 사용하여 조건을 줌
-ORDER BY (DESC)
+HAVING (COUNT) (DISTINCT COL) (> ,>=, <, <=)               # GROUP BY에서 조건을 줄 때는 HAVING을 사용하여 조건을 줌
+ORDER BY (DESC) (COL1 - + * / COL2)
 LIMIT
 
 
@@ -73,7 +73,10 @@ SELECT ANIMAL_ID, NAME, DATE_FORMAT(DATETIME, '%Y-%m-%d')
 SELECT IFNULL(NAME, 'NO NAME') FROM NAMES
  - 이름이 없는 경우 NO NAME 출력
 
-# CASE WHEN THEN ELSE END
+
+
+
+     # CASE WHEN THEN ELSE END
 # CASE - Ex 1
 SELECT
     INS.ANIMAL_TYPE,
@@ -107,22 +110,57 @@ RIGHT(문자, 가져올 갯수);
 
 
 
+    # JOIN
+FROM TABLE A LEFT JOIN TABLE B ON A.KEY = B.KEY
+ - 교집합 + A에만 있는 부분
+
+FROM TABLE A LEFT JOIN TABLE B ON A.KEY = B.KEY
+WHERE B.KEY IS NULL
+ - B와 공유하는 교집합을 제외하고 A에만 있는 부분
+
+FROM  TABLE B RIGHT JOIN TALBE B ON A.KEY = B.Key
+ - 교집합 + B에만 있는 부분
+
+FROM  TABLE B RIGHT JOIN TALBE B ON A.KEY = B.Key
+WHERE A.KEY IS NULL
+ - A와 공유하는 교집합을 제외하고 B에만 있는 부분
+
+FROM TABLE A FULL OUTER JOIN TABLE B ON A.KEY = B.KEY
+ - 합집합
+
+FROM TABLE A FULL OUTER JOIN TABLE B ON A.KEY = B.KEY
+WHERE A.KEY IS NULL OR B.KEY IS NULL
+ - 합집합 중 A와 B가 공유하는 교집합을 제외한 부분
 
 
 
+    # USING
+FROM ANIMAL_INS A RIGHT JOIN ANIMAL_OUTS B ON A.ANIMAL_ID = B.ANIMAL_ID
+ = FROM ANIMAL_INS A RIGHT JOIN ANIMAL_OUTS B USING ANIMAL_ID
 
 
 
+    # SUBQUERY(서브쿼리)
+ - FROM 절에 서브쿼리 날릴 때 MYSQL에서는 ALIAS를 꼭(MUST) 적어주어야 함, 아니면 에러
+SELECT HOUR, COUNT(HOUR) AS COUNT
+FROM (
+    SELECT ANIMAL_ID AS ANIMAL_ID, MID(DATETIME, 12, 2) AS HOUR
+    FROM ANIMAL_OUTS
+    ) SUB  # <- 이렇게 SUB 별명
+GROUP BY HOUR
+ORDER BY HOUR ASC;
 
 
 
-
-
-
-
-
-
-
-
+    # WITH RECURSIVE (CTE)
+# https://velog.io/@cyanred9/SQL-Recursive
+ - with로 임시 테이블 CTE(Common Table Expression) 생성
+ - 초기 설정값과 recursive할 쿼리를 union all로 엮음
+WITH recursive CTE as( #재귀쿼리 세팅
+    select 0 as HOUR #초기값 설정
+    union all #위 쿼리와 아래 쿼리의 값을 연산
+    select HOUR+1 from CTE #하나씩 불려 나감
+    where HOUR < 23 #반복을 멈추는 용도
+)
 
  ────────────────────────────────────────────────────────────────────────
