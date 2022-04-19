@@ -1,26 +1,6 @@
 
 --------------- PYTHON ---------------
 
-    # 좌표, 위치, 공간 관련
-
-# 코딩 시 사용 변수명
- (x, y), (dx, dy), (nx, ny)
- (array, map_, visit)
-
-
-# 왼쪽으로 회전
-def turn_left():
-    global direction
-    direction -= 1
-    if direction == -1:
-        direction = 3
-
-
-# 왼쪽으로 회전 후 움직일 방향 정의
-dx = [-1, 0, 1, 0]
-dy = [0, 1, 0, -1]
-
-
 
 
     # DFS/BFS
@@ -303,6 +283,393 @@ while(start <= end):
 
 print(result)
 
+
+
+    # heapq 모듈
+# https://www.daleseo.com/python-heapq/
+ - 이진 트리(binary tree)기반의 최소 힙(min heap) 자료구조를 제공
+ - 보통 리스트를 마치 힙처럼 다룰 수 있도록 도와줌
+ - min heap을 사용하면 원소들이 항상 정렬된 상태로 추가되고 삭제되며,
+   min heap에서 가장 작은 값은 언제나 인덱스 0, 즉, 이진 트리의 루트에 위치함.
+ - 내부적으로 min heap 내의 원소(k)는 항상 자식 원소들(2k+1, 2k+2)보다 크기가 작거나 같도록 원소가 추가되고 삭제됨.
+
+
+# python에서 힙 적용
+ - import heapq # priority queue의 성질을 가지고 있어서 q가 붙음
+ - heapq.heapify(L) # 리스트 L로부터 min heap 구성
+ - m = heapq.heappop(L) # min heap L에서 최소값 삭제 (반환)
+ - heapq.heappush(L, x) # min heap L에 원소 x 삽입
+ - heap[0] # 힙에서 최소값을 삭제하지 않고 접근
+ - 주의사항: 인덱스 0에 가장 작은 원소가 있다고 해서, 인덱스 1에 두번째 작은 원소,
+   인덱스 2에 세번째 작은 원소가 있다는 보장은 없음. heappop() 함수를 호출하여 원소를 삭제할 때마다
+   이진 트리의 재배치를 통해 매번 새로운 최소값을 인덱스0에 위치시키기 때문
+   따라서 두번째 작은 원소를 얻으려면 바로 heap[1]으로 접근하면 안되고,
+   반드시 heappop()을 통해 가장 작은 원소를 삭제 후에 heap[0]를 통해 새로운 최소값에 접근해야 함.
+
+
+# 최대 힙
+# https://www.daleseo.com/python-heapq/
+ - heapq는 최소 힙(min heap)을 기능만으로 동작하기 때문에 최대 힙(max heap)으로 활용하기 위해서는 약간의 요령이 필요함
+ - 바로 힙에 튜플(tuple)를 원소로 추가하거나 삭제하면, 튜플내에서 맨 앞에 있는 값을 기준으로 최소 힙의 구성되는 원리를 이용하는 것
+ - 따라서 최대 힙을 만들려면 각 값에 대한 우선 순위를 구한 후, (우선 순위, 값) 구조의 튜플(tuple)을 힙에 추가하거나 삭제하면 됨.
+ - 그리고 힙에서 값을 읽어올 때는 각 튜플에서 인덱스 1에 있는 값을 취하면 됨. (우선 순위에는 관심이 없으므로)
+
+```python
+import heapq
+
+nums = [4, 1, 7, 3, 8, 5]
+heap = []
+
+for num in nums:
+  heapq.heappush(heap, (-num, num))  # (우선 순위, 값)
+
+while heap:
+  print(heapq.heappop(heap)[1])  # index 1
+```
+
+
+
+    # 최단 경로
+ - 가장 짧은 경로는 찾는 알고리즘
+ - 상황에 맞는 효율적인 알고리즘이 이미 정립되어 있음
+    - '한 지점에서 다른 특정 지점까지의 최단 경로를 구해야 하는 경우'
+    - '모든 지점에서 다른 모든 지점까지의 최단 경로를 모두 구해야 하는 경우'
+
+
+#### 1. 다익스트라(Dijkstra) 최단 경로 알고리즘
+ - 그래프에서 여러 개의 노드가 있을 때,
+   특정한 노드에서 출발하여 다른 노드로 가는 각각의 최단 경로를 구해주는 알고리즘
+ - 매번 '가장 비용이 적은 노드'를 선택해서 임의의 과정을 반복하여 그리디 알고리즘으로 분류됨
+ - 원리
+     1. 출발 노드를 설정한다.
+     2. 최단 거리 테이블을 초기화한다.
+     3. 방문하지 않은 노드 중에서 최단 거리가 가장 짧은 노드를 선택한다.
+     4. 해당 노드를 거쳐 다른 노드로 가는 비용을 계산하여 최단 거리 테이블을 갱신한다.
+     5. 위 과정에서 3번과 4번을 반복한다.
+ - '각 노드에 대한 현재까지의 최단 거리' 정보를 항상 1차원 리스트에 저장하여 리스트를 계속 갱신한다는 특징이 있다.
+ - 구현 방법
+    - 방법1. 구현하기 쉽지만 느리게 동작하는 코드
+    - 방법2. 구현하기 조금 까다롭지만 빠르게 동작하는 코드★
+
+
+** 방법 1. 간단한 다익스트라 알고리즘 소스코드 **
+import sys
+input = sys.stdin.readline
+INF = int(1e9) # 무한을 의미하는 값으로 10억을 설정
+
+# 노드의 개수, 간선의 개수 입력받기
+n, m = map(int, input().split())
+# 시작 노드 번호를 입력받기
+start = int(input())
+# 각 노드에 연결되어 있는 노드에 대한 정보를 담는 리스트를 만들기★
+graph = [[] for i in range(n + 1)]
+# 방문한 적이 있는지 체크하는 목적의 리스트 만들기★
+visited = [False] * (n + 1)
+# 최단 거리 테이블을 모두 무한으로 초기화★
+distance = [INF] * (n + 1)
+
+# 모든 간선 정보를 입력받기
+for _ in range(m):
+    a, b, c = map(int, input().split())
+    # a번 노드에서 b번 노드로 가는 비용이 c라는 의미
+    graph[a].append((b, c))
+
+
+# 방문하지 않은 노드 중에서, 가장 최단 거리가 짧은 노드의 번호를 반환
+def get_smallest_node():
+    min_value = INF
+    index = 0 # 가장 최단 거리가 짧은 노드(인덱스)
+    for i in range(1, n + 1):
+        if distance[i] < min_value and not visited[i]:
+            min_value = distance[i]
+            index = i
+    return index
+
+
+def dijkstra(start):
+    # 시작 노드에 대해서 초기화
+    distance[start] = 0 # 자기 자신에게 가는 거리 = 0
+    visited[start] = True # 자기 자신은 방문처리
+    for j in graph[start]: # start노드에서 연결된 다른 노드까지 가는 거리가 담긴 리스트
+        distance[j[0]] = j[1] # j = [(2, 2), (3, 5), (4, 1)] -> j[0]은 노드번호, j[1]은 노드까지의 거리
+			        # start에서 연결된 노드들까지의 거리를 distance에 초기화 해준 것
+    # 시작 노드를 제외한 전체 n - 1개의 노드에 대해 반복
+    for i in range(n - 1):
+        # 현재 최단 거리가 가장 짧은 노드를 꺼내서, 방문 처리
+        now = get_smallest_node()
+        visited[now] = True
+        # 현재 노드와 연결된 다른 노드를 확인
+        for j in graph[now]: # j = [(3, 3), (5, 1)]
+            cost = distance[now] + j[1] # 1에서 now까지의 거리 + now에서 연결된 다른 노드까지의 거리
+	    # 현재 노드를 거쳐서 다른 노드로 이동하는 거리가 더 짧은 경우
+            if cost < distance[j[0]]: # 새로 구한 거리 cost가 distance에 저장된 거리보다 작은 경우
+                distance[j[0]] = cost # 새로 구한 거리가 더 짧으므로 갱신
+
+# 다익스트라 알고리즘 수행
+dijkstra(start)
+
+# 모든 노드로 가기 위한 최단 거리를 출력
+for i in range(1, n + 1):
+    # 도달할 수 없는 경우, 무한(INFINITY)이라고 출력
+    if distance[i] == INF:
+        print("INFINITY")
+    # 도달할 수 있는 경우 거리를 출력
+    else:
+        print(distance[i])
+
+
+
+** 방법 2. 개선된 다익스트라 알고리즘 소스코드 **
+ - 시간 복잡도 O(Elog(V))를 보장하여 해결, V는 노드의 개수, E는 간선의 개수를 의미
+ - 힙 자료구조를 이용
+ - '현재 가장 가까운 노드를 저장하기 위한 목적'으로 우선순위 큐를 추가로 이용
+ - '최단 거리가 가장 짧은 노드'를 선택하는 과정을 다익스트라 최단 경로 함수 안에서 우선순위 큐를 이용하여 대체
+ - 튜플의 첫 번째 원소인 '거리' 정보를 기준으로 해서 우선순위 큐를 구성
+
+
+import heapq
+import sys
+input = sys.stdin.readline
+INF = int(1e9) # 무한을 의미하는 값으로 10억을 설정
+
+# 노드의 개수, 간선의 개수 입력받기
+n, m = map(int, input().split())
+# 시작 노드 번호를 입력받기
+start = int(input())
+# 각 노드에 연결되어 있는 노드에 대한 정보를 담는 리스트를 만들기★
+graph = [[] for i in range(n + 1)]
+# 최단 거리 테이블을 모두 무한으로 초기화★
+distance = [INF] * (n + 1)
+
+# 모든 간선 정보를 입력받기
+for _ in range(m):
+    a, b, c = map(int, input().split())
+    # a번 노드에서 b번 노드로 가는 비용이 c라는 의미
+    graph[a].append((b, c))
+
+
+def dijkstra(start):
+  q = []
+  # 시작 노드로 가기 위한 최단 경로는 0으로 설정하여, 큐에 삽입
+  heapq.heappush(q, (0, start))
+  distance[start] = 0
+  while q: # 큐가 비어있지 않다면
+    # 가장 최단 거리가 짧은 노드에 대한 정보 꺼내기
+    dist, now = heapq.heappop(q)
+    # 현재 노드가 이미 처리된 적이 있는 노드라면 무시
+    if distance[now] < dist:  # 이미 방문하여 distance[now]가 최솟값을 가져서 후에 재방문 할 필요가 없음
+      continue		       # 힙에 넣어지면서, 거리에 따라 순위가 재조정되는 과정에서 이미 앞에서 방문할 수 있기 때문
+    # 현재 노드와 연결된 다른 인접한 노드들을 확인
+    for i in graph[now]:
+      cost = dist + i[1]
+      # 현재 노드를 거쳐서, 다른 노드로 이동하는 거리가 더 짧은 경우
+      if cost < distance[i[0]]:
+        distance[i[0]] = cost
+        heapq.heappush(q, (cost, i[0]))
+
+# 다익스트라 알고리즘을 수행
+dijkstra(start)
+
+# 모든 노드로 가기 위한 최단 거리를 출력
+for i in range(1, n + 1):
+  # 도달할 수 없는 경우, 무한(INFINITY)이라고 출력
+  if distance[i] == INF:
+    print("INFINITY")
+  # 도달할 수 있는 경우 거리를 출력
+  else:
+    print(distance[i])
+
+
+
+# 다익스트라 과정 - 01
+import heapq
+import sys
+input = sys.stdin.readline
+INF = int(1e9) # 무한을 의미하는 값으로 10억을 설정
+
+# 노드의 개수 및 간선의 개수, 시작지점을 입력받기
+n, m, start = map(int, input().split())
+# 각 노드에 연결되어 있는 노드에 대한 정보를 담고 있는 리스트를 만들기
+graph = [[] for i in range(n + 1)]
+# 최단 거리 테이블을 모두 무한으로 초기화
+distance = [INF] * (n + 1)
+
+# 모든 간선 정보를 입력받기
+for _ in range(m):
+  x, y, z = map(int, input().split())
+  # a번 노드에서 b번 노드로 가는 비용이 c라는 의미
+  graph[x].append((y, z))
+
+
+def dijkstra(start):
+  q = []
+  # 시작 노드로 가기 위한 최단 경로는 0으로 설정하여, 큐에 삽입
+  heapq.heappush(q, (0, start))
+  distance[start] = 0
+  while q: # 큐가 비어 있지 않다면
+    # 가장 최단 거리가 짧은 노드에 대한 정보 꺼내기
+    dist, now = heapq.heappop(q)
+    # 현재 노드가 이미 처리된 적이 있는 노드라면 무시
+    if distance[now] < dist:
+      continue
+    # 현재 노드와 연결된 다른 인접한 노드들을 확인
+    for i in graph[now]:
+      cost = dist + i[1]
+      # 현재 노드를 거쳐서, 다른 노드로 이동하는 거리가 더 짧은 경우
+      if cost < distance[i[0]]:
+        distance[i[0]] = cost
+        heapq.heappush(q, (cost, i[0]))
+
+dijkstra(start)
+
+# 도달할 수 있는 노드의 개수
+count = 0
+# 도달할 수 있는 노드 중에서, 가장 멀리 있는 노드와의 최단 거리
+max_distance = 0
+
+for d in distance:
+  # 도달할 수 있는 노드의 경우
+  if d != INF:
+    count += 1
+    max_distance = max(max_distance, d)
+
+# 시작 노드는 제외해야 하므로 count -1을 출력
+print(count - 1, max_distance)
+
+
+
+#### 2. 플로이드 워셜 알고리즘
+ - '모든 지점에서 다른 모든 지점까지의 최단 경로를 모두 구해야 하는 경우'
+ - 총 복잡도는 O(N^3)이다.
+ - 플로이드 워셜 알고리즘은 2차원 리스트에 '최단 거리' 정보를 저장한다는 특징.
+   모든 노드에 대하여 다른 모든 노드로 가는 최단 거리 정보를 담아야 하기 때문.
+ - 다이나믹 프로그래밍이라는 특징을 가지고 있음.
+   노드의 개수가 N이라고 할 때, N번 만큼의 단계를 반복하며 '점화식에 맞게' 2차원 리스트를 갱신하기 때문
+ - K번에 단계에 대한 점화식은 다음과 같음
+    D_ab = min(D_ab, D_ak + D_kb)
+     - 'A에서 B로 가는 최소비용'과 'A에서 K를 거쳐 B로 가는 비용'을 비교하여 더 작은 값으로 갱신
+     - 즉, '바로 이동하는 거리'가 '특정한 노드를 거쳐서 이동하는 거리'보다 더 많은 비용을 가진다면
+       이를 더 짧은 것으로 갱신한다는 것
+
+** 플로이드 워셜 알고리즘 소스코드 **
+INF = int(1e9) # 무한을 의미하는 값으로 10억을 설정
+
+# 노드의 개수 및 간선의 개수를 입력받기
+n = int(input())
+m = int(input())
+# 2차원 리스트(그래프 표현)을 만들고, 모든 값을 무한으로 초기화
+graph = [[INF] * (n + 1) for _ in range(n + 1)]
+
+# 자기 자신에서 자기 자신으로 가는 비용은 0으로 초기화
+for a in range(1, n + 1):
+    for b in range(1, n + 1):
+        if a==b:
+            graph[a][b] = 0
+
+# 각 간선에 대한 정보를 입력받아, 그 값으로 초기화
+for _ in range(m):
+    # A에서 B로 가는 비용은 C라고 설정
+    a, b, c = map(int, input().split())
+    graph[a][b] = c
+
+# 점화식에 따라 플로이드 워셜 알고리즘을 수행
+for k in range(1, n+1):
+    for a in range(1, n+1):
+        for b in range(1, n+1):
+            graph[a][b] = min(graph[a][b], graph[a][k] + graph[k][b])
+
+# 수행된 결과를 출력
+for a in range(1, n+1):
+    for b in range(1, n+1):
+        # 도달할 수 없는 경우, 무한(INFINITY)이라고 출력
+        if graph[a][b] == INF:
+            print("INFINITY", end=" ")
+        else:
+            print(graph[a][b], end=" ")
+    print()
+
+
+
+# 플로이드 워셜 과정 - 01
+# 미래 도시
+INF = int(1e9) # 무한을 의미하는 값으로 10억을 설정
+
+# 노드의 개수 및 간선의 개수를 입력받기
+n = int(input())
+m = int(input())
+
+# 2차원 리스트(그래프 표현)을 만들고, 모든 값을 무한으로 초기화
+graph = [[INF] * (n + 1) for _ in range(n + 1)]
+
+# 자기 자신에서 자기 자신으로 가는 비용은 0으로 초기화
+for a in range(1, n + 1):
+    for b in range(1, n + 1):
+        if a==b:
+            graph[a][b] = 0
+
+# 각 간선에 대한 정보를 입력받아, 그 값으로 초기화
+for _ in range(m):
+    # A에서 B로 가는 비용은 1이라고 설정
+    a, b = map(int, input().split())
+    graph[a][b] = 1
+    graph[b][a] = 1 # 양방향으로 이동할 수 있다고 했기 때문
+
+# 거쳐 갈 노드 X와 최종 목적지 노드 K를 입력받기
+x = int(input())
+k = int(input())
+
+# 점화식에 따라 플로이드 워셜 알고리즘을 수행
+for k in range(1, n+1):
+    for a in range(1, n+1):
+        for b in range(1, n+1):
+            graph[a][b] = min(graph[a][b], graph[a][k] + graph[k][b])
+
+# 수행된 결과를 출력
+if graph[1][k] == INF: # A회사에서 K까지 가는 최소 거리
+  print(-1)
+else:
+  print(graph[1][k] + graph[k][x]) # A회사에서 K를 거친 후 X까지 가는 최소거리
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # 좌표, 위치, 공간 관련
+# 코딩 시 사용 변수명
+ (x, y), (dx, dy), (nx, ny)
+ (array, map_, visit)
+
+
+# 왼쪽으로 회전
+def turn_left():
+    global direction
+    direction -= 1
+    if direction == -1:
+        direction = 3
+
+
+# 왼쪽으로 회전 후 움직일 방향 정의
+dx = [-1, 0, 1, 0]
+dy = [0, 1, 0, -1]
+
+
+
+    # stack, queue, priority queue
+스택(Stack) - 가장 나중에 삽입된 데이터
+큐(Queue) - 가장 먼저 삽입된 데이터
+우선순위 큐(Priority Queue) - 가장 우선순위가 높은 데이터
 
 
 
