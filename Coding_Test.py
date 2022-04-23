@@ -632,7 +632,330 @@ else:
 
 
 
+    # 그래프 이론
+ - '서로 다른 개체(혹은 객체)가 연결되어 있다'는 이야기를 들으면 가장 먼저 그래프 알고리즘을 떠올려야 함
+   EX: '여러 개의 도시가 연결되어 있다'
+ - 그래프의 구현 방법은 2가지 방식이 존재
+    1. 인접 행렬(Adjacency Matrix): 2차원 배열을 사용하는 방식
+	- 플로이드 워셜 알고리즘
+    2. 인접 리스트(Adjacency List): 리스트를 사용하는 방식
+	- 다익스트라 최단 경로 알고리즘
+ - 어떤 문제든 메모리와 시간을 염두에 두고 알고리즘을 선택해서 구현해야 함
+	- 노드의 개수가 적은 경우 -> 플로이드 워셜
+	- 노드, 간선의 개수가 많은 경우 -> 다익스트라
 
+
+#### 1. 서로소 집합
+ - 서로소 집합: 공통 원소가 없는 두 집합
+ - 서로소 집합 자료구조: 서로소 부분 집합들로 나누어진 원소들의 데이터를 처리하기 위한 자료구조
+ - 서로소 집합 자료구조는 union과 find 2개의 연산으로 조작 가능
+	- union: 2개의 원소가 포함된 집합을 하나의 집합으로 합치는 연산
+	- find: 특정한 원소가 속한 집합이 어떤 집합인지 알려주는 연산
+ - 트리를 이용해 서로소 집합을 계산하는 알고리즘
+    1. union 연산을 확인하여, 서로 연결된 두 노드 A, B를 확인한다.
+    2. 모든 union 연산을 처리할 때까지 1번 과정을 반복한다.
+ - union 연산들은 간선으로 표현됨.
+ - 일반적으로 서로소 집합을 그림으로 표현할 때는 번호가 큰 노드가 번호가 작은 노드를 간선으로 가리키도록 트리 구조를 이용해 그림을 그림
+
+
+** 개선된 서로소 집합 알고리즘 소스코드 **
+ - 경로 압축 기법을 적용해서 시간 복잡도를 개선
+ - 경로 압축은 find 함수를 재귀적으로 호출한 뒤에 부모 테이블값을 갱신하는 기법
+
+# 특정 원소가 속한 집합을 찾기(특정 원소의 루트노드 찾기)
+def find_parent(parent, x):
+    # 루트 노드가 아니라면, 루트 노드를 찾을 때까지 재귀적으로 호출
+    if parent[x] != x:
+        parent[x] = find_parent(parent, parent[x])
+    return parent[x]
+
+# 두 원소가 속한 집합을 합치기
+def union_parent(parent, a, b):
+    a = find_parent(parent, a)
+    b = find_parent(parent, b)
+    if a < b:
+        parent[b] = a
+    else:
+        parent[a] = b
+
+# 노드의 개수와 간선(union 연산)의 개수 입력받기
+v, e  = map(int, input().split())
+parent = [0] * (v + 1) # 부모 테이블 초기화
+
+# 부모 테이블상에서, 부모를 자기 자신으로 초기화
+for i in range(1, v + 1):
+    parent[i] = i
+
+# union 연산을 각각 수행
+for i in range(e):
+    a, b, = map(int, input().split())
+    union_parent(parent, a, b)
+
+# 각 원소가 속한 집합 출력
+print('각 원소가 속한 집합: ', end=' ')
+for i in range(1, v + 1):
+    print(find_parent(parent, i), end=' ')
+
+print()
+
+# 부모 테이블 내용 출력
+print('부모 테이블: ', end=' ')
+for i in range(1, v + 1):
+    print(parent[i], end=' ')
+
+
+
+# 서로소 집합 과정 - 01
+# '같은 팀 여부 확인' 연산에 대하여 한 줄에 하나씩 YES 혹은 NO로 결과를 출력
+# 각 연산을 하나씩 확인
+for i in range(m):
+    oper, a, b = map(int, input().split())
+    # 합집합(union)의 연산의 경우
+    if oper == 0:
+        union_parent(parent, a, b)
+    # 찾기(find) 연산인 경우
+    elif oper == 1:
+        if find_parent(parent, a) == find_parent(parent, b):
+            print('YES')
+        else:
+            print('NO')
+
+
+
+
+
+#### 1 - 2.서로소 집합을 활용한 사이클 판별
+ - 간선을 하나씩 확인하면서 두 노드가 포함되어 있는 집합을 합치는 과정을 반복하는 것만으로도 사이클을 판별할 수 있음
+    1. 각 간선을 확인하며 두 노드의 루트 노드를 확인함
+	- 루트 노드가 서로 다르다면 두 노드에 대하여 union 연산을 수행
+	- 루트 노드가 서로 같다면 사이클(Cycle)이 발생한 것
+    2. 그래프에 포함되어 있는 모든 간선에 대하여 1번 과정을 반복함
+ - 사이클 판별 알고리즘은 그래프에 포함되어 있는 간선의 개수가 E개일 때, 모든 간선을 하나씩 확인하여,
+   매 간선에 대하여 union 및 find 함수를 호출하는 방식으로 동작함.
+ - 해당 알고리즘은 간선에 방향성이 없는 무향 그래프에서만 적용 가능함.
+
+** 서로소 집합을 활용한 사이클 판별 소스코드 **
+
+# 특정 원소가 속한 집합을 찾기(부모 노드 찾기)
+def find_parent(parent, x):
+    # 루트 노드가 아니라면, 루트 노드를 찾을 때까지 재귀적으로 호출
+    if parent[x] != x:
+        parent[x] = find_parent(parent, parent[x])
+    return parent[x]
+
+# 두 원소가 속한 집합을 합치기
+def union_parent(parent, a, b):
+    a = find_parent(parent, a)
+    b = find_parent(parent, b)
+    if a < b:
+        parent[b] = a
+    else:
+        parent[a] = b
+
+# 노드의 개수와 간선(union 연산)의 개수 입력받기
+v, e  = map(int, input().split())
+parent = [0] * (v + 1) # 부모 테이블 초기화
+
+# 부모 테이블상에서, 부모를 자기 자신으로 초기화
+for i in range(1, v + 1):
+    parent[i] = i
+
+
+cycle = False # 사이클 발생 여부
+
+for i in range(e):
+    a, b = map(int, input().split())
+    # 사이클이 발생한 경우 종료
+    if find_parent(parent, a) == find_parent(parent, b):
+        cycle = True
+        break
+    # 사이클이 발생하지 않았다면 합집합(union) 수행
+    else:
+        union_parent(parent, a, b)
+
+if cycle:
+    print("사이클이 발생했습니다.")
+else:
+    print("사이클이 발생하지 않았습니다.")
+
+
+
+#### 신장 트리(Spanning Tree)
+ - 신장 트리란 하나의 그래프가 있을 때 모든 노드를 포함하면서 사이클이 존재하지 않는 부분 그래프를 의미한다.
+ - 다양한 문제 상황에서 가능한 한 최소한의 비요응로 신장 트리를 찾아야 할 때가 있음
+    Ex: 모든 도시를 '연결'할 때, 최소한의 비용으로 연결하려는 경우
+ - 신장 트리 중에서 최소 비용으로 만들 수 있는 신장 트리를 찾는 알고리즘을 '최소 신장 트리 알고리즘'이라 한다.
+ - 대표적인 최소 신장 틜 알고리즘으로는 '크루스칼 알고리즘'이 있다
+
+#### 2. 크루스칼 알고리즘(Kruskal Algorithm)
+ - 크루스칼 알고리즘을 사용하면 가장 적은 비용으로 모든 노드를 연결할 수 있는데
+   크루스칼 알고리즘음 그리디 알고리즘으로 분류된다.
+ - 먼저 모든 간선에 대하여 정렬을 수행한 뒤에, 가장 거리가 짧은 간선부터 집합에 포함시키면 된다.
+ - 이때 사이클을 발생시킬 수 있는 간선의 경우, 집합에 포함시키지 않는다.
+    1. 간선 데이터를 비용에 따라 오름차순으로 정렬한다.
+    2. 간선을 하나씩 확인하며 현재의 간선이 사이클을 발생시키는지 확인한다.
+         - 사이클이 발생하지 않는 경우 최소 신장 트리에 포함시킨다.
+	- 사이클이 발생하는 경우 최소 신장 트리에 포함시키지 않는다.
+    3. 모든 간선에 대하여 2번의 과정을 반복한다.
+ - 최종적으로 신장 트리에 포함되는 간선의 개수가 '노드의 개수 - 1'과 같다는 특징이 있다.
+ - 시간복잡도는 O(Elog(E))이다. 시간이 가장 오래 걸리는 부분은 간선을 정렬하는 작업이며,
+   E개의 데이터를 정렬했을 때의 시간 복잡도는 O(Elog(E))이기 때문
+
+
+** 크루스칼 알고리즘 소스코드(최초 신장 트리를 만드는데 필요한 비용을 계산하는 크루스칼 알고리즘)**
+
+# 특정 원소가 속한 집합을 찾기(부모 노드 찾기)
+def find_parent(parent, x):
+    # 루트 노드가 아니라면, 루트 노드를 찾을 때까지 재귀적으로 호출
+    if parent[x] != x:
+        parent[x] = find_parent(parent, parent[x])
+    return parent[x]
+
+# 두 원소가 속한 집합을 합치기
+def union_parent(parent, a, b):
+    a = find_parent(parent, a)
+    b = find_parent(parent, b)
+    if a < b:
+        parent[b] = a
+    else:
+        parent[a] = b
+
+# 노드의 개수와 간선(union 연산)의 개수 입력받기
+v, e  = map(int, input().split())
+parent = [0] * (v + 1) # 부모 테이블 초기화
+
+# 모든 간선을 담을 리스트와 최종 비용을 담을 변수
+edges = []
+result = 0
+
+# 부모 테이블상에서, 부모를 자기 자신으로 초기화
+for i in range(1, v + 1):
+    parent[i] = i
+
+# 모든 간선에 대한 정보를 입력받기
+for _ in range(e):
+    a, b, cost = map(int, input().split())
+    # 비용순으로 정렬하기 위해서 튜플의 첫 번째 원소를 비용으로 설정
+    edges.append((cost, a, b))
+
+# 간선을 비용순으로 정렬
+edges.sort()
+
+# 간선을 하나씩 확인하며
+for edge in edges:
+    cost, a, b = edge
+    # 사이클이 발생하지 않는 경우에만 집합에 포함
+    if find_parent(parent, a) != find_parent(parent, b):
+        union_parent(parent, a, b)
+        result += cost
+
+print(result)
+
+
+
+#### 3. 위상 정렬(Topology Sort)
+ - 위상 정렬은 정렬 알고리즘의 일종임.
+ - 위상 정렬은 '순서가 정해져 있는 일련의 작업'을 차례대로 수행해야 할 때 사용할 수 있는 알고리즘임
+ - 위상 정렬이란 방향 그래프이 모든 노드를 '방향성에 거스르지 않도록 순서대로 나열하는 것'
+    Ex. "선수과목을 고려한 학습 순서 설정"
+ - 그래프상에서 선후관계가 있다면, 위상정렬을 수행하여 모든 선후 관계를 지키는 전체 순서를 계산할 수 있음
+ - 진입차수란 특정한 노드로 '들어오는' 간선의 개수를 의미함.
+ - 위상 정렬 알고리즘
+    1. 진입차수가 0인 노드를 큐에 넣는다
+    2. 큐가 빌 때까지 다음의 과정을 반복한다.
+        - 큐에서 원소를 꺼내 해당 노드에서 출발하는 간선을 그래프에서 제거한다.
+	- 새롭게 진입차수가 0이 된 노드를 큐에 넣는다
+ - 모든 원소를 방문하기 전에 큐가 빈다면 사이클이 존재한다고 판단할 수 있음
+ - 위상 정렬의 답안은 여러 가지가 될 수 있음
+ - 위상 정렬의 시간 복잡도는 O(V + E)임.
+
+
+** 위상 정렬 소스코드**
+
+from collections import deque
+
+# 노드의 개수와 간선의 개수를 입력받기
+v, e = map(int, input().split())
+# 모든 노드에 대한 진입차수는 0으로 초기화
+indegree = [0] * (v + 1)
+# 각 노드에 연결된 간선 정보를 다믹 위한 연결 리스트(그래프) 초기화
+graph = [[] for i in range(v + 1)]
+
+# 방향 그래프의 모든 간선 정보를 입력받기
+for _ in range(e):
+    a, b = map(int, input().split())
+    graph[a].append(b) # 정점 A에서 B로 이동 가능
+    # 진입차수를 1 증가
+    indegree[b] += 1
+
+# 위상 정렬 함수
+def topology_sort():
+    result = [] # 알고리즘 수행 결과를 담을 리스트
+    q = deque() # 큐 기능을 위한 deque 라이브러리 사용
+
+    # 처음 시작할 때는 진입차수가 0인 노드를 큐에 삽입
+    for i in range(1, v + 1):
+        if indegree[i] == 0:
+            q.append(i)
+
+    # 큐가 빌 때까지 반복
+    while q:
+        # 큐에서 원소 꺼내기
+        now = q.popleft()
+        result.append(now)
+        # 해당 원소와 연결된 노드들의 진입차수에서 1 빼기
+        for i in graph[now]:
+            indegree[i] -= 1
+            # 새롭게 진입차수가 0이 되는 노드를 큐에 삽입
+            if indegree[i] == 0:
+                q.append(i)
+
+    # 위상 정렬을 수행한 결과 출력
+    for i in result:
+        print(i, end=' ')
+
+topology_sort()
+
+
+
+    # 다이나믹 프로그래밍
+- 1. 최적 부분 구조: 큰 문제를 작은 문제로 나눌 수 있으며 작은 문제의 답을 모아서 큰 문제를 해결할 수 있다.
+- 2. 중복되는 부분 문제: 동일한 작은 문제를 반복적으로 해결해야 한다.
+
+** BottomUp 소스코드 예시 **
+# 앞서 계산된 결과를 저장하기 위한 DP테이블 초기화
+d = [0] * 100
+
+# 첫 번째 피보나치 수와 두 번째 피보나치 수는 1
+d[1] = 1
+d[2] = 1
+n = 99
+
+# 피보나치 함수(Fibonacci Function) 반복문으로 구현(보텀업 다이나믹 프로그래밍)
+for i in range(3, n+1):
+    d[i] = d[i - 1] + d[i -2]
+
+print(d[n])
+
+
+
+
+    # greedy 문제들
+# 문제 01 - 만들 수 없는 금액
+n = int(input())
+data = list(map(int, input().split()))
+
+data.sort()
+target = 1
+
+for x in data:
+  # 만들 수 없는 금액을 찾았을 때 반복 종료
+  if target < x:
+    break
+  target += x
+  print(x, target)
+
+print(target)
 
 
 
@@ -660,9 +983,24 @@ def turn_left():
         direction = 3
 
 
-# 왼쪽으로 회전 후 움직일 방향 정의
+# 왼쪽으로 회전 후 움직일 방향 정의(동서남북)
 dx = [-1, 0, 1, 0]
 dy = [0, 1, 0, -1]
+
+
+# 2차원 리스트 90도 회전(시계방향)
+def rotate_a_matrix_by_90_degree(a):
+  n = len(a) # 행 길이 계산
+  m = len(a[0]) # 열 길이 계산
+  result = [[0] * n for _ in range(m)] # 결과 리스트
+  for i in range(n):
+    for j in range(m):
+      result[j][n - i - 1] = a[i][j]
+  return result
+
+
+
+
 
 
 
