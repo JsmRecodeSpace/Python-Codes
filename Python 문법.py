@@ -71,6 +71,8 @@ sorted(x.index)
 sorted(x.values)
 sorted(x, reverse=True) # 내림차순 정렬 = sorted(x)[::-1]
 sorted(L, key=lambda x: len(x)) # 정렬의 키를 지정할 수 있다. 예시는 문자의 길이를 키로 지정하여 정렬하도록 한 것.
+names = sorted(infos, key=lambda info : (-int(info[1]), # 정렬의 키를 여러개 지정할 수 있다. 앞의 조건이 같을 경우 뒤에 조건으로 정렬
+              int/(info[2]), -int(info[3]), info[0]))
 	# sort() 메소드 예시
 L = [{'name': 'John', 'score':83}, {'name':'Paul', 'score':92}]
 L.sort(key=lambda x: x['score'], reverse=True) # 레코드들을 점수 높은 순으로 정렬

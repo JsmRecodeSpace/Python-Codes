@@ -50,7 +50,7 @@ visited = [False] * 9
 dfs(graph, 1, visited)
 
 
-# DFS 과정 2
+# DFS 과정 2 (미로탈출, start에서 끝 부분 까지의 최단 거리 찾기)
     - 1. 특정한 지점의 주변 상,하,좌,우를 살펴본 뒤에 주변 지점 중에서 값이 '0'이면서
          아직 방문하지 않은 지점이 있다면 해당 지점을 방문한다.
     - 2. 방문한 지점에서 다시 상,하,좌,우를 살펴보면서 방문을 다시 진행하면, 연결된 모든 지점을 방문할 수 있다.
@@ -86,6 +86,72 @@ print(result) # 정답 출력
 
 
 
+# DFS 과정 3 (연구소 - 바이러스 퍼짐을 DFS로 구현, 벽 세우는 것은 완전 탐색, DFS후 안전영역 카운트)
+temp =[[0] * m for _ in range(n)] # 벽을 설치한 뒤의 맵 리스트
+
+# 4가지 이동 방향에 대한 리스트
+dx = [-1, 0, 1, 0]
+dy = [0, 1, 0, -1]
+
+result = 0
+
+# 깊이 우선 탐색(DFS)를 이용해 각 바이러스가 사방으로 퍼지도록 하기
+def virus(x, y):
+  for i in range(4):
+    nx = x + dx[i]
+    ny = y + dy[i]
+    # 상, 하, 좌, 우 중에서 바이러스가 퍼질 수 있는 경우
+    if nx >= 0 and nx < n and ny >= 0 and ny < m:
+      if temp[nx][ny] == 0:
+        # 해당 위치에 바이러스 배치하고, 다시 재귀적으로 수행
+        temp[nx][ny] = 2
+        virus(nx, ny)
+
+# 현재 맵에서 안전 영역의 크기를 계산하는 메서드
+def get_score():
+  score = 0
+  for i in range(n):
+    for j in range(m):
+      if temp[i][j] == 0:
+        score += 1
+  return score
+
+# 깊이 우선 탐색(DFS)를 이용해 울타리를 설치하면서, 매번 안전 영역의 크기 계산
+def dfs(count):
+  global result
+  # 울타리가 3개 설치된 경우
+  if count == 3:
+    for i in range(n):
+      for j in range(m):
+        temp[i][j] = data[i][j]
+    # 각 바이러스의 위치에서 전파 진행
+    for i in range(n):
+      for j in range(m):
+        if temp[i][j] == 2:
+          virus(i, j)
+    # 안전 영역의 최댓값 계산
+    result = max(result, get_score())
+    return
+  # 빈 공간에 울타리 설치
+  for i in range(n):
+    for j in range(m):
+      if data[i][j] == 0:
+        data[i][j] = 1
+        count += 1
+        dfs(count)
+        data[i][j] = 0
+        count -= 1
+
+dfs(0)
+print(result)
+
+
+
+
+
+
+
+
 
     # BFS(Breath-First Search)
  - 너비 우선 탐색, 가까운 노드부터 탐색하는 알고리즘
@@ -95,7 +161,7 @@ print(result) # 정답 출력
    가까운 노드부터 탐색을 진행하게 됨
  - 구현에 있어 deque 라이브러리를 사용하는 것이 좋으며 탐색을 수행함에 있어 O(N)의 시간이 소요된다.
  - 일반적으로 수행 시가나은 DFS보다 좋은 편이다.
-
+ - ★ '모든 도로의 거리는 1'이라는 조건, '모든 간선의 비용이 동일'할 때는 우선 너비 탐색(BFS)을 이용하여 최단 거리를 찾을 수 있다.
 
 
 # BFS 과정 1
@@ -142,7 +208,7 @@ bfs(graph, 1, visited)
 
 
 
-# BFS 과정 2
+# BFS 과정 2 (음료수 얼려 먹기, 0으로 된 부분의 영역 갯수 카운트)
     - 맨 처음 (1, 1)의 위치에서 시작하며, (1, 1)의 값은 항상 1이라고 문제에서 언급
     - (1, 1) 좌표에서 상,하,좌,우로 탐색을 진행하면 바로 옆 노드인 (1,2) 위치의 노드를 방문하게 되고 새롭게 방문하는 (1, 2) 노드의 값을 2로 바꾸게 됨.
     - 마찬가지로 BFS를 계속 수행하면 결과적으로 다음과 같이 최단 경로의 값들이 1씩 증가하는 형태로 변경됨.
@@ -183,6 +249,81 @@ print(bfs(0, 0))
 
 
 
+# BFS 과정 3 (특정 거리의 도시 찾기 - 최단 거리만큼에 연결되어 있는 도시 찾기)
+ - 모든 도로의 거리가 1이라는 조건이 있을 때, 간선의 비용이 동일할 때는 너비 우선 탐색을 이용하여 최단 거리를 찾을 수 있다
+ from collections import deque
+
+graph = [[] for _ in range(n + 1)]
+for i in range(m):
+  graph[data[i][0]].append(data[i][1])
+
+# 모든 도시에 대한 최단 거리 초기화
+distance = [-1] * (n + 1)
+distance[x] = 0 # 출발 도시까지의 거리는 0으로 설정
+
+# 너비 우선 탐색(BFS) 수행
+q = deque([x])
+while q:
+  now = q.popleft()
+  # 현재 도시에서 이동할 수 있는 모든 도시를 확인
+  for next_node in graph[now]:
+    # 아직 방문하지 않은 도시라면
+    if distance[next_node] == -1:
+      # 최단 거리 갱신
+      distance[next_node] = distance[now] + 1
+      q.append(next_node)
+
+
+
+# BFS 과정 4 (경쟁적 전염 - 초마다 정해진 순서의 지점별로 BFS 1칸씩 실시하여 영역 넓혀나감)
+from collections import deque
+
+n, k = map(int, input().split())
+
+graph = [] # 전체 보드 정보를 담는 리스트
+data = [] # 바이러스에 대한 정보를 담는 리스트
+
+for i in range(n):
+  # 보드 정보를 한 줄 단위로 입력
+  graph.append(list(map(int, input().split())))
+  for j in range(n):
+    # 해당 위치에 바이러스가 존재하는 경우
+    if graph[i][j] != 0:
+      # (바이러스 종류, 시간, 위치 X, 위치 Y) 삽입
+      data.append((graph[i][j], 0, i, j))
+
+# 정렬 이후에 큐로 옮기기(낮은 번호의 바이러스가 먼저 증식하므로)
+data.sort()
+q = deque(data)
+
+target_s, target_x, target_y = map(int, input().split())
+
+# 바이러스가 퍼져나갈 수 있는 4가지 위치
+dx = [-1, 0, 1, 0]
+dy = [0, 1, 0, -1]
+
+# 너비 우선 탐색(BFS) 진행
+while q:
+  virus, s, x, y = q.popleft()
+  # 정확히 s초가 지나거나, 큐가 빌 때까지 반복
+  if s == target_s:
+    break
+  # 현재 노드에서 주변 4가지 위치를 각각 확인
+  for i in range(4):
+    nx = x + dx[i]
+    ny = y + dy[i]
+    # 해당 위로 이동할 수 있는 경우
+    if 0 < nx and nx < n  and 0 <= nx and ny < n:
+      # 아직 방문하지 않은 위치라면, 그 위치에 바이러스 넣기
+      if graph[nx][ny] == 0:
+        graph[nx][ny] = virus
+        q.append((virus, s + 1, nx, ny))
+
+print(graph[target_x -1][target_y - 1])
+
+
+
+
     # 정렬(Sort)
 # 코테에서의  정렬 출제 유형
  - 문제에서 별도의 요구가 없다면 기본 정렬 라이브러리,
@@ -214,6 +355,17 @@ for i in range(len(array)):
 for i in range(len(count)): # 리스트에 기록된 정렬 정보 확인
     for j in range(count[i]):
         print(i, end=' ') # 띄어쓰기를 구분으로 등장한 횟수만큼 인덱스 출력
+
+
+# Sorted 함수를 활용한 정렬: 키 값으로 여러 개를 두어 계산할 수 있다.
+names = sorted(infos, key=lambda info : (-int(info[1]),
+              int/(info[2]), -int(info[3]), info[0]))
+
+
+# 거리 합을 최소로 하는 중간값(median)
+ - 정렬 하면 중간값에서 array안에 있는 모든 값까지의 거리가 최소가 된다.
+ - array에서 모든 값까지의 최소가 되는 값을 구할 때 중앙값을 구하는 lst[(n-1) // 2]을 활용
+
 
 
 
@@ -297,7 +449,7 @@ print(result)
 # python에서 힙 적용
  - import heapq # priority queue의 성질을 가지고 있어서 q가 붙음
  - heapq.heapify(L) # 리스트 L로부터 min heap 구성
- - m = heapq.heappop(L) # min heap L에서 최소값 삭제 (반환)
+ - m = heapq.heappop(L) # min heap L에서 최소값 삭제 (반환), 맨 앞에 껏 pop함
  - heapq.heappush(L, x) # min heap L에 원소 x 삽입
  - heap[0] # 힙에서 최소값을 삭제하지 않고 접근
  - 주의사항: 인덱스 0에 가장 작은 원소가 있다고 해서, 인덱스 1에 두번째 작은 원소,
