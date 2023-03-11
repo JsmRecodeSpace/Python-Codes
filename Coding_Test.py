@@ -382,7 +382,7 @@ names = sorted(infos, key=lambda info : (-int(info[1]),
 # 이진 탐색 소스코드 구현 (재귀 함수)
 def binary_search(array, target, start, end):
     if start > end:
-        return Nond
+        return None
     mid  = (start + end) // 2
     # 찾은 경우 중간점 인덱스 반환
     if array[mid] == target:
@@ -434,6 +434,31 @@ while(start <= end):
     start = mid + 1
 
 print(result)
+
+
+
+# 이진 탐색 과정2 (bisect 모듈 활용, 특정 원소개의 개수 세기)
+ - 파이썬의 이진 탐색 라이브러리인 bisect을 적절히 활용하면
+   정렬된 수열에서 특정한 값을 가지는 원소의 개수를 손쉽게 해결할 수 있다
+
+from bisect import bisect_right, bisect_left
+
+# 값이 [left_value, right_value]인 데이터의 개수를 반환하는 함수
+def count_by_range(array, left_value, right_value):
+  right_index = bisect_right(array, right_value)
+  left_index = bisect_left(array, left_value)
+  return right_index - left_index
+
+# 값이 [x, x] 범위에 있는 데이터의 개수 계산
+count = count_by_range(array, x, x)
+
+# 값이 x인 원소가 존재하지 않는다면
+if count == 0:
+  print(-1)
+# 값이 x인 원소가 존재한다면
+else:
+  print(count)
+
 
 
 
@@ -1088,6 +1113,11 @@ for i in range(3, n+1):
     d[i] = d[i - 1] + d[i -2]
 
 print(d[n])
+
+
+
+
+
 
 
 

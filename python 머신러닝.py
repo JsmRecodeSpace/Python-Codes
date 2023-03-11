@@ -1295,7 +1295,7 @@ plot_importance(xgb_clf, ax=ax)
 
 
     # LGBMClassifier, LGBM
-from lightgbm import LGBMClassifier(LGBMClassifier)
+from lightgbm import LGBMClassifier
 lgb_clf = LGBMClassifier(random_state=42, n_jobs=-1)
 # lgb_clf = LGBMClassifier(n_estimators=1000, num_leaves=32, sub_sample=0.8, min_child_samples=100, max_depth=128, random_state=0, n_jobs=-1)
 # eval = [(X_valid, y_valid)]
