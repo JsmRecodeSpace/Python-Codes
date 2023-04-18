@@ -9,6 +9,8 @@
 * 시간, 요일
 * 파일 읽고 쓰기
 * 객체지향 프로그래밍
+* 정규표현식
+* deque
 
 
 ---------- Basic Methods ----------
@@ -33,6 +35,15 @@ pass # 아무 일도 하지 않는다.
 
 # 무슨 타입인지 알고 싶을때 안에 넣으면 타입출력
 type(x)
+
+# 타입변환
+int()
+float()
+str()
+chr()
+bool()
+
+
 
 
 # x에 적용할 수 있는 기능들을 모두 알려줌
@@ -73,6 +84,8 @@ sorted(x, reverse=True) # 내림차순 정렬 = sorted(x)[::-1]
 sorted(L, key=lambda x: len(x)) # 정렬의 키를 지정할 수 있다. 예시는 문자의 길이를 키로 지정하여 정렬하도록 한 것.
 names = sorted(infos, key=lambda info : (-int(info[1]), # 정렬의 키를 여러개 지정할 수 있다. 앞의 조건이 같을 경우 뒤에 조건으로 정렬
               int/(info[2]), -int(info[3]), info[0]))
+stu_lst.sort(key = lambda x: (-int(x[1]), int(x[2]), -int(x[3]), x[0]))
+stu_lst
 	# sort() 메소드 예시
 L = [{'name': 'John', 'score':83}, {'name':'Paul', 'score':92}]
 L.sort(key=lambda x: x['score'], reverse=True) # 레코드들을 점수 높은 순으로 정렬
@@ -104,9 +117,8 @@ print(array)
 # [('a', 3, '다'), ('a', 7, '가'), ('b', 1, '나'), ('c', 2, '라'), ('c', 3, '가')]
 # [('a', 7, '가'), ('a', 3, '다'), ('b', 1, '나'), ('c', 3, '가'), ('c', 2, '라')]
 
-
-
-
+# 뒤집기(리스트 거꾸로 출력)
+lst[::-1]
 
 
 # else문 줄이기
@@ -133,6 +145,20 @@ combi = combinations(a,2)
 print(list(combi))
 # 결과
 [(1,2),(1,3),(2,3)]
+
+
+# 유리수 계산
+# 파이썬에서 유리수 연산을 정확하게 하려면 fractions.Fraction을 사용해야 한다.
+from fractions import Fraction
+>>> result = Fraction(1, 5)+Fraction(2, 5)
+>>> result
+Fraction(3, 5)
+분자의 값은 numerator로 알 수 있다.
+>>> a.numerator
+1
+분모의 값은 denominator로 알 수 있다.
+>>> a.denominator
+5
 
 
 
@@ -370,6 +396,13 @@ oct(value)
 hex(value)
 
 
+
+	# 인덱스를 통해 자리 바꾸기
+lst = list(my_string)
+lst[num1], lst[num2] = lst[num2], lst[num1]
+
+
+
 ---------- Function ----------
 
 # 재귀함수 Recursion Function: 자기 자신을 호출하는 함수
@@ -404,6 +437,7 @@ x.pop() # 리스트에서 마지막 값을 제거
  - pop() 메소드에 숫자로 인덱스를 줄 경우, 인덱스의 값을 리스트에서 제거 + 반환하게 됨
  - Queue에서 dequeue 구현시 pop(0)을 사용함이 예시임.
 x.insert() # 지정한 위치에 값을 삽입한다. (리스트명.insert(위치, 값))
+           # 지정한 인덱스에 값을 삽입한다.
 x.remove() # 리스트에서 지정한 값을 삭제. 지정 값이 여러개일 경우 첫번째 값만 삭제. (리스트명.remove(지울값))
 x.extend() # 리스트 뒤에 리스트를 추가한다. 리스트 + 리스트와 동일. (리스트명.extend(추가 리스트))
 x.index('c') # c의 위치를 찾는다
@@ -414,6 +448,20 @@ x.copy() # 리스트의 내용을 새로운 리스트에 복사한다.
 x.clear() # 리스트의 내용을 모두 지운다
 x.sort() # 리스트의 요소를 순서대로 정렬해준다.
 x.reverse() # 리스트를 그대로 거꾸로 뒤집는다. 역정렬은 아님
+
+
+# deep copy
+깊은 복사는 내부에 객체들까지 모두 새롭게 copy 되는 것입니다.
+copy.deepcopy메소드가 해결해줍니다.
+>>> import copy
+>>> a = [[1,2],[3,4]]
+>>> b = copy.deepcopy(a)
+>>> a[1].append(5)
+>>> a
+[[1, 2], [3, 4, 5]]
+>>> b
+[[1, 2], [3, 4]]
+
 
 
 x[::-1]  # 리스트의 순서 뒤집기
@@ -443,7 +491,7 @@ for j in test[:]:
 
 
 ## List comprehension
-    # 리스트 컴프리핸션 예시문제
+1.리스트 컴프리핸션 예시문제 (조건문을 앞에 짜는 경우)
 for i in range(1,n+1):
   if i%2==1:
     ans.append('수')
@@ -451,6 +499,12 @@ for i in range(1,n+1):
     ans.append('박')
 ''. join(ans)
 >>>>>>>>>>>>>>>>''.join(['수' if (i%2==1) else '박' for i in range(1,n+1)])
+
+2.리스트 컴프리핸션 (조건문을 뒤에 짜는 경우)
+[str_ for str_ in my_string if str_.isdigit()]
+ -> 뒤에짜는 경우는 else문을 꼭 안써줘도 됨!!
+    뒤에 조건문 짤 때는 true, false 체크하는 느낌
+
 
 
 
@@ -592,7 +646,7 @@ fruit.get('포도', 500)  # 사전에 존재하지 않는 키를 찾으면, KeyE
 del fruit['사과']  # '사과' 삭제
 fruit.clear() # 사전을 전부 비우고 싶다면, .clear() 메소드를 사용한다.
 
-# Dictionary comprehension
+# Dictionary comprehension (딕테이션 컴프리핸션)
 {i: np.sin(i) for i in range(1,21)}
 
 
@@ -683,6 +737,8 @@ a | b
 	# 교집합
 a & b # 두 집합 사이의 교집합은 &으로 구한다.
 집합1.intersection(집합2)
+(set(s1) & set(s2)
+
 	# 차집합
 a - b # 두 집합 사이의 차집합은 -으로 구한다.
 a.difference(b)
@@ -693,6 +749,7 @@ a.difference(b)
 
 
 # 문자열 함수: 구성파악
+an
 문자열.isdigit(), # 문자가 숫자로 구성되어 있는지
 문자열.isnumeric(), # 이건 1/2 이런 특수문자도 True 판단함
 문자열.isalpha(), # 문자가 문자로 구성되어 있는지
@@ -700,9 +757,12 @@ a.difference(b)
 문자열.islower(), # 문자가 소문자로만 구성되어 있는지
 문자열.isupper(), # 문자가 대문자로만 구성되어 있는지
 문자열.isspace(), # 문자가 공란인지
+
 문자열.swapcase(), # 대소문자 바꿈
 문자열.title(), # 주어진 문자열에서 알파벳 외의 문자로 나누어져 있는 영단어들의 첫 글자를 모두 대문자로 변환시킨다.
 문자열.capitalize(), # 주어진 문자열에서 맨 첫 글자를 대문자로 변환시킨다.
+
+value.is_integer() # 정수인지 여부
 
 문자열.upper(), 문자열.lower(),
 문자열.split(), # 디폴트로 아무것도 안넣으면 스페이스바를 기준으로함
@@ -1145,9 +1205,62 @@ print(student01) -> 이름 Seongmin, 나이: 26, 학교: KMU, 공부시간: 2
 
 
 
+---------- 정규표현식 ----------
+import re
+
+# 1. 문자열 안에 정수만 추출
+re.findall('\d+', 'abc123def56zz')
+# ['123', '56']
+
+
+# 2. 문자열 쪼개기
+re.split(pattern, string): 문자열을 패턴 기준으로 쪼갠다.
+
+pattern = "[0-9]"
+a = re.split(pattern, "오늘은 29일 이에요")
+# a
+# ['오늘은 ', '', '일 이에요']
+
+
+# 3. 문자열 바꾸기
+-- aeiou에 해당하면 ''으로 바꾸기
+import re
+def solution(my_string):
+    return re.sub('[aeiou]', '', my_string)
+
+
+---------- deque ----------
+from collections import deque
+
+데크(deque)에 존재하는 메서드(method)는 대략 다음과 같다.
+
+deque.append(item): item을 데크의 오른쪽 끝에 삽입한다.
+deque.appendleft(item): item을 데크의 왼쪽 끝에 삽입한다.
+deque.pop(): 데크의 오른쪽 끝 엘리먼트를 가져오는 동시에 데크에서 삭제한다.
+deque.popleft(): 데크의 왼쪽 끝 엘리먼트를 가져오는 동시에 데크에서 삭제한다.
+deque.extend(array): 주어진 배열(array)을 순환하면서 데크의 오른쪽에 추가한다.
+deque.extendleft(array): 주어진 배열(array)을 순환하면서 데크의 왼쪽에 추가한다.
+deque.remove(item): item을 데크에서 찾아 삭제한다.
+deque.rotate(num): 데크를 num만큼 회전한다(양수면 오른쪽, 음수면 왼쪽).
+# from: https://chaewonkong.github.io/posts/python-deque.html
+
+
+# rotate: 양수면 오른쪽으로 회전, 음수면 왼쪽으로 회전
+def solution(numbers, direction):
+    numbers = deque(numbers)
+    if direction == 'right':
+        numbers.rotate(1)
+    else:
+        numbers.rotate(-1)
+    return list(numbers)
 
 
 
 
 
-──────────────────────────────
+
+
+
+
+
+──────────────────────────────────────────────────────────────────────────────────────────
