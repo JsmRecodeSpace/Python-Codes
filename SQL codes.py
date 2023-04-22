@@ -20,7 +20,6 @@ LIKE
 
 
 
-
     # 시간 관련 함수
 # http://happycgi.com/community/bbs_detail.php?bbs_num=43&tb=board_man_story
 - DAYOFWEEK(date) : 해당 날짜의 요일을 숫자로 반환한다. 일요일은 1, 토요일은 7 이다.
@@ -162,5 +161,14 @@ WITH recursive CTE as( #재귀쿼리 세팅
     select HOUR+1 from CTE #하나씩 불려 나감
     where HOUR < 23 #반복을 멈추는 용도
 )
+
+
+
+
+# NVL
+NVL(FREEZER_YN, 'N') AS FREEZER_YN -- null값인 경우 'N'
+
+
+
 
  ────────────────────────────────────────────────────────────────────────

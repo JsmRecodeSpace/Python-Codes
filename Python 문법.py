@@ -390,6 +390,12 @@ pickle.load(f)
 	# 진법
 # 2진법: bin()
 bin(value)
+ - Python에서 이진 값은 이진 표현 앞에 0b를 접두사로 붙입니다.
+ - 정수로 변환하려면 숫자와 밑수를 전달해야합니다 (이진수 값의 밑수는 2입니다).
+   a = int('101',2)
+   print(a)
+   >>> 5
+
 # 8진법: oct()
 oct(value)
 # 16진법: hex()
@@ -594,7 +600,7 @@ collections.Counter(a=2,b=3,c=2) == ['a','a','b','b','b','c','c']
 
 container = collections.Counter()
 container.update('aabcdeffgg') # update()는 Counter의 값을 갱신하는 것을 의미
-print(container)
+print(container) # >>> 사전형으로 반환: Counter({'a': 2, 'f': 2, 'g': 2, 'b': 1, 'c': 1, 'd': 1, 'e': 1})
 for k,v in container.items():
 	print(k,':',v)
 
@@ -749,8 +755,8 @@ a.difference(b)
 
 
 # 문자열 함수: 구성파악
-an
 문자열.isdigit(), # 문자가 숫자로 구성되어 있는지
+ - 음수는 False로 나온다. ex) '-1'.isdigit() >>> False
 문자열.isnumeric(), # 이건 1/2 이런 특수문자도 True 판단함
 문자열.isalpha(), # 문자가 문자로 구성되어 있는지
 문자열.isalnum(), # 문자가 숫자 또는 문자로 구성되어 있는지 -> 특수문자 구분
@@ -1211,6 +1217,9 @@ import re
 # 1. 문자열 안에 정수만 추출
 re.findall('\d+', 'abc123def56zz')
 # ['123', '56']
+ - 문자안에 있는 숫자 다 더하기
+  1) sum([int(i) for i in (re.findall('\d+', my_string))])
+  2) sum([int(i) for i in re.findall(r'[0-9]+', my_string)])
 
 
 # 2. 문자열 쪼개기
