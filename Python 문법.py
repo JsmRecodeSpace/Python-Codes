@@ -407,6 +407,21 @@ hex(value)
 lst = list(my_string)
 lst[num1], lst[num2] = lst[num2], lst[num1]
 
+	# 인덱싱, 슬라이싱은 초과해도 에러가 나지 않습니다
+return [my_str[i:i+n] for i in range(0, len(my_str), n)]
+
+
+
+
+# 서로 다른 n개 중 m개를 뽑는 경우의 수 공식은 다음과 같습니다.
+ - 조합을 써서 풀 수도 있지만 효율면에서 아래가 더 빠르다
+from math import factorial as f
+def solution(balls, share):
+    answer = f(balls) / (f(balls-share) * f(share))
+    return answer
+
+
+
 
 
 ---------- Function ----------
