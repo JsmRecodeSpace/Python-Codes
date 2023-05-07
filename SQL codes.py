@@ -19,6 +19,15 @@ LIKE
    'JSM'이 들어가는 데이터 검색: LIKE '%JSM%'
 
 
+# REGEXP_LIKE
+-- LIKE와 유사한 코드로 여러개 한거번에 검색할시 REGEXP_LIKE를 활용할 수 있음
+SELECT CAR_TYPE, COUNT(CAR_TYPE) AS CARS
+FROM CAR_RENTAL_COMPANY_CAR C
+WHERE REGEXP_LIKE(OPTIONS, '통풍시트|열선시트|가죽시트')
+GROUP BY CAR_TYPE
+ORDER BY CAR_TYPE
+
+
 
     # 시간 관련 함수
 # http://happycgi.com/community/bbs_detail.php?bbs_num=43&tb=board_man_story
@@ -63,6 +72,21 @@ select DATE_FORMAT('1997-10-04 22:23:00', '%H:%i:%s');
 select DATE_FORMAT('1997-10-04 22:23:00', '%D %y %a %d %m %b %j');
 select DATE_FORMAT('1997-10-04 22:23:00', '%H %k %I %r %T %S %w');
 SELECT ANIMAL_ID, NAME, DATE_FORMAT(DATETIME, '%Y-%m-%d')
+
+
+
+
+# 계산함수, 집계함수
+ - Sum
+ - AVG
+ - COUNT
+ - Max
+ - Min
+ - median: 중앙
+ - variance: 분산
+ - stddev: 표준편차
+
+
 
 
 
@@ -167,6 +191,69 @@ WITH recursive CTE as( #재귀쿼리 세팅
 
 # NVL
 NVL(FREEZER_YN, 'N') AS FREEZER_YN -- null값인 경우 'N'
+
+
+
+# TRUNC 함수
+-- https://gent.tistory.com/192
+
+WITH temp AS (
+  SELECT TO_DATE('2018-12-13 22:10:59', 'YYYY-MM-DD HH24:MI:SS') dt, 1234.56 nmb
+    FROM dual
+)
+
+SELECT dt
+     , TRUNC(dt)  --시간 절사
+     , nmb
+     , TRUNC(nmb) --소수점 절사
+  FROM temp
+
+
+1) 시간 절사 방법
+WITH temp AS (
+  SELECT TO_DATE('2018-12-13 22:10:59', 'YYYY-MM-DD HH24:MI:SS') dt, 1234.56 nmb
+    FROM dual
+)
+
+SELECT dt
+     , TRUNC(dt, 'DD')   --시간 절사
+     , TRUNC(dt, 'HH24') --분, 초 절사
+     , TRUNC(dt, 'MI')   --초 절사
+  FROM temp
+
+2) 일자/요일 절사 방법
+WITH temp AS (
+  SELECT TO_DATE('2018-12-13 22:10:59', 'YYYY-MM-DD HH24:MI:SS') dt , 1234.56 nmb
+    FROM dual
+)
+
+SELECT dt
+     , TRUNC(dt, 'YEAR')  --월, 일 초기화
+     , TRUNC(dt, 'MONTH') --일 초기화
+     , TRUNC(dt, 'DAY')   --요일 초기화 (일요일)
+  FROM temp
+
+3) 숫자/소수점 절사 방법
+WITH temp AS (
+  SELECT TO_DATE('2018-12-13 22:10:59', 'YYYY-MM-DD HH24:MI:SS') dt , 1234.56 nmb
+    FROM dual
+)
+
+SELECT nmb
+     , TRUNC(nmb, 1) --소수점 첫째 절사
+     , TRUNC(nmb, 2) --소수점 둘째 절사
+     , TRUNC(nmb,-1) --1단위 절사
+     , TRUNC(nmb,-2) --10단위 절사
+  FROM temp
+
+
+
+
+
+
+
+
+
 
 
 
