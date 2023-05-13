@@ -248,9 +248,39 @@ SELECT nmb
 
 
 
+# 오라클 EXTRACT 함수
+-- https://blog.naver.com/PostView.nhn?blogId=regenesis90&logNo=222226229952
+날짜 정보 추출 함수, 날짜 데이터에서 연도, 월, 일, 시, 분, 초 추출하기
+
+select extract('날짜요소' from 컬럼X) as 별칭
+from 테이블A;
+
+-- '날짜요소'에 투입하는 항목에 따라, 날짜 데이터로부터 얻을 수 있는 값이 달라지게 됩니다.
+YEAR    연도
+MONTH   월
+DAY     일
+HOUR    시
+MINUTE  분
+SECOND  초
+
+-- 예제 : 시스템 현재시각(SYSTIMESTAMP)에서 연도, 달, 날짜, 시간, 분, 초 추출하기
+select systimestamp,
+       extract (year from systimestamp) as year,
+       extract (month from systimestamp) as month,
+       extract (day from systimestamp) as day,
+       extract (hour from systimestamp) as hour,
+       extract (minute from systimestamp) as minute,
+       extract (second from systimestamp) as second
+from dual;
 
 
 
+# TO_CHAR
+
+TO_CHAR(somgthing, 'FM90.0')
+ - '9'는 해당 자리 숫자를 의미하고, 없을 경우 공백으로 표시
+ - '0'은 해당 자리 숫자를 의미하고, 없을 경우 '0'으로 표시
+ - 'FM'은 좌우 공백 제거
 
 
 
