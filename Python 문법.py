@@ -772,7 +772,7 @@ a.difference(b)
 # 문자열 함수: 구성파악
 문자열.isdigit(), # 문자가 숫자로 구성되어 있는지
  - 음수는 False로 나온다. ex) '-1'.isdigit() >>> False
-문자열.isnumeric(), # 이건 1/2 이런 특수문자도 True 판단함
+문자열.isnumeric(), # 이건 1/2 이런 특수문자도 True 판단함, isnumberic도 -1는 False
 문자열.isalpha(), # 문자가 문자로 구성되어 있는지
 문자열.isalnum(), # 문자가 숫자 또는 문자로 구성되어 있는지 -> 특수문자 구분
 문자열.islower(), # 문자가 소문자로만 구성되어 있는지
