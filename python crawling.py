@@ -1,10 +1,150 @@
 
 ──────────────────── 목차 ────────────────────
+
+------------- 라이브러리 -------------
+------------- 업데이트 내용 -------------
+------------- 크롤링 설명 -------------
+
+
+
 ############# 0.크롤링 여러 기능 #############
 ############# 1.yes24 크롤링 #############
 ############# 2.네이버쇼핑 크롤링 #############
 
 ──────────────────────────────────────────────
+
+
+
+------------- 라이브러리 -------------
+
+
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+
+
+
+
+------------- 업데이트 내용 -------------
+
+
+셀레니움3에서는 아래의 방법으로 html 요소를 찾았다면
+driver.find_element_by_class_name("")
+driver.find_element_by_id("")
+driver.find_element_by_css_selector("")
+driver.find_element_by_name("")
+driver.find_element_by_tag_name("")
+driver.find_element_by_xpath("")
+driver.find_element_by_link_text("")
+driver.find_element_by_partial_link_text("")
+(복수형 driver.find_elements_by~~)
+
+셀레니움4에서는
+driver.find_element(By.CLASS_NAME, "")
+driver.find_element(By.ID, "")
+driver.find_element(By.CSS_SELECTOR, "")
+driver.find_element(By.NAME, "")
+driver.find_element(By.TAG_NAME, "")
+driver.find_element(By.XPATH, "")
+driver.find_element(By.LINK_TEXT, "")
+driver.find_element(By.PARTIAL_LINK_TEXT, "")
+(복수형 driver.find_elements(By.~~, "")
+이렇게 바뀌었습니다.
+
+
+
+
+------------- 크롤링 설명 -------------
+
+ - CSS_SELECTOR는 다 되죠.
+★★★★★ ID면 앞에 (샵), CLASS_NAME이면 앞에 .을 입력해주면 됩니다.
+          css_selector로 사실 거의 다 작성함.
+
+ - 내부에 있는 title이나 등등 모두 활용이 가능.
+driver.find_element(By.CSS_SELECTOR, "[title='검색어 입력']").send_keys("뉴진스")
+   → 검색어 입력이란 타이틀을 가진 것을 불러와라. 라는 것.
+driver.find_element(By.CSS_SELECTOR, "[placeholder='검색어를 입력해 주세요.']").send_keys("에스파")
+
+ - XPATH
+   → xpath는 최후의 방법으로 생각하세요. 가능하면 앞에 것들도 해결하는게 훨씬 좋습니다
+driver.find_element(By.XPATH, '//*[@id="query"]').send_keys("에스파")
+
+
+ - LINK_TEXT
+driver.find_element(By.LINK_TEXT, "쇼핑LIVE").click()
+  → 쇼핑LIVE라는 글자가 있는 것을 가져옴
+
+  ★★ 하나가 더 있음. 파셜 링크 텍스트로, 글자의 일부가 해당하는 것이 있어도 찾아내는 기능이에요.
+driver.find_element(By.PARTIAL_LINK_TEXT, "핑LI").click()
+
+ - TAG_NAME
+# 태그가 많다보니 단독으로 있을 때 사용함. 이용도로는 자주 사용안함
+# 혹은 find_elements로 여러 개 있을 때 사용하곤 함
+driver.find_element(By.TAG_NAME, "")
+
+
+    # 예시
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+import time
+
+options = Options()
+options.add_experimental_option("detach", True)
+service = Service(ChromeDriverManager().install())
+driver = webdriver.Chrome(service=service, options=options)
+
+url = "https://naver.com"
+
+driver.get(url)
+time.sleep(1)
+
+    # CLASS_NAME
+driver.find_element(By.CLASS_NAME, "input_text").send_keys("블랙핑크")
+time.sleep(1)
+    # ID
+driver.find_element(By.ID, "query").send_keys("뉴진스")
+time.sleep(1)
+    # NAME
+driver.find_element(By.NAME, "query").send_keys("트와이스")
+time.sleep(1)
+    # CSS_SELECTOR
+driver.find_element(By.CSS_SELECTOR, "#query").send_keys("에스파")
+time.sleep(1)
+    # XPATH
+driver.find_element(By.XPATH, '//*[@name="query"]').send_keys("에스파")
+time.sleep(1)
+    # LINK_TEXT
+driver.find_element(By.LINK_TEXT, "쇼핑LIVE").click()
+    # PARTIAL_LINK_TEXT
+driver.find_element(By.PARTIAL_LINK_TEXT, "핑LI").click()
+    # CSS_SELECTOR
+navs = driver.find_elements(By.CSS_SELECTOR, ".nav")
+
+for nav in navs:
+    print(nav.get_attribute("outerHTML"))
+    print()
+
+
+
+ - WebDriverWait
+WebDriverWait(driver, 10) : WebDriverWait을 통해 driver를 "최대" 10초동안 기다린다.
+(이때 10초를 넘기면 NoSuchElementException, ElementNotVisibleException과 같은 에러가 발생한다.)
+이런 에러가 뜬다면, 한번 Waits을 해보자)
+
+.until(EC.presence_of_element_located((By.ID, "myDynamicElement")) : 언제까지? -> ID가 "myDynamicElement"인 엘리먼트가 나올 때까지
+(이때 해당 엘리먼트가 나오면, EC에서 True를 리턴한다.)
+EC에서 presence_of_element_located 말고도 다양한 메소드를 제공한다.(ex. element_to_be_clickable() 등등..)
+
+즉, ID가 myDynamicElement인 element가 나올 때까지 최대 10초를 기다린다.
+이때, ID 이외에도 XPATH, CLASS_NAME, LINK_TEXT 등등을 이용해 Explicit Waits을 구현 할 수 있다.
+그냥 저 틀을 알아두면 편할 것 같다.
+
+ - maximize_window
+browser.maximize_window() # 창 최대화
+
+
 
 
 
@@ -346,3 +486,53 @@ sheet.append('제품명, 가격, 리뷰, 구매건수, 찜한 수, 사이트링�
 for i in range(products_num):
     sheet.append(f'{name_list[i]}, {price_list[i]}, {views_list[i]}, {buys_list[i]}, {jjim_list[i]}, {link_list[i]}'.split(','))
 wb.save('selenium_test_excel.xlsx')
+
+
+
+
+# 3.파티베이터 코드 일부 #
+import datetime
+import time
+import pandas
+import selenium import webdriver
+from selenium.webdriver.common.by import By
+
+from const import DB_PATH
+
+def get_moim():
+    # 여기야 ========================
+    SEARCHING_TEXT = "모임 공지"
+    CATEGORY = "카페"
+    SCROLL = 5
+    # ============================
+
+    browser = webdriver.Chrome()
+    browser.get("https://www.naver.com/")
+    time.sleep(3)
+
+
+# 2.cafe_top12
+ * 이사람이 검색한건 '고기', '독서', '바베큐', '아이돌', '보드게임', '와인', '위스키' 이런 키워드가 있었음
+
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+
+import time
+import pandas
+import datetime
+
+# ===================
+search_word = "팬카페"
+# ===================
+
+driver = webdriver.Chrome()
+driver.get('https://section.cafe.naver.com/ca-fe/home/search/combinations?q=')
+
+search = driver.find_element(By.XPATH, '//*[@id="header"]/div[1]/div/div[2]/form/fieldset/div/div/div[2]/input')
+search.sesnd_keys(search_word)
+search.send_keys(Keys.ENTER)
+time.sleep(1)
+
+driver.find_element(By.XPAYH, '//*[@id="mainContaineer"]/div/.div[1]//div[2]/a[2]').click()
+time.sleep(1)

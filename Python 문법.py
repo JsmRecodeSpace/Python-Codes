@@ -11,7 +11,7 @@
 * 객체지향 프로그래밍
 * 정규표현식
 * deque
-
+* heap
 
 ---------- Basic Methods ----------
 
@@ -82,7 +82,18 @@ sorted(x.index)
 sorted(x.values)
 sorted(x, reverse=True) # 내림차순 정렬 = sorted(x)[::-1]
 sorted(L, key=lambda x: len(x)) # 정렬의 키를 지정할 수 있다. 예시는 문자의 길이를 키로 지정하여 정렬하도록 한 것.
-names = sorted(infos, key=lambda info : (-int(info[1]), # 정렬의 키를 여러개 지정할 수 있다. 앞의 조건이 같을 경우 뒤에 조건으로 정렬
+
+
+ # sorted 다중정렬
+  - 정렬의 키를 여러개 지정할 수 있다. 앞의 조건이 같을 경우 뒤에 조건으로 정렬
+
+ex)
+f = sorted(e, key = lambda x : (x[0], -x[1]))
+ - 아이템 첫 번째 인자를 기준으로 오름차순으로 먼저 정렬하고,
+ - 그리고 그 안에서 다음 두 번째 인자를 기준으로 내림차순으로 정렬하게 하려면, 다음과 같이 할 수 있다
+   (-를 붙이면, 현재 정렬차순과 반대로 하게 된다.)
+
+names = sorted(infos, key=lambda info : (-int(info[1]),
               int/(info[2]), -int(info[3]), info[0]))
 stu_lst.sort(key = lambda x: (-int(x[1]), int(x[2]), -int(x[3]), x[0]))
 stu_lst
@@ -119,6 +130,10 @@ print(array)
 
 # 뒤집기(리스트 거꾸로 출력)
 lst[::-1]
+
+
+# n by n 리스트 만들기(n x n 리스트 만들기)
+tmp_lst =[[0] * m for _ in range(n)]
 
 
 # else문 줄이기
@@ -406,6 +421,10 @@ hex(value)
 	# 인덱스를 통해 자리 바꾸기
 lst = list(my_string)
 lst[num1], lst[num2] = lst[num2], lst[num1]
+ - 예시
+    # 작은 수가 n이 되도록 함
+    if n > m : n,m = m, n
+
 
 	# 인덱싱, 슬라이싱은 초과해도 에러가 나지 않습니다
 return [my_str[i:i+n] for i in range(0, len(my_str), n)]
@@ -446,6 +465,12 @@ def cos_similarity(v1, v2):
     similarity = dot_product / l2_norm
 
     return similarity
+
+
+# TF 리턴
+ - return len(s) in (4,6) and s.isdigit()
+ - 조건만 주어서 조건에 맞으면 True 아니면 False 리턴하도록 할 수 있다.
+
 
 
 
@@ -697,6 +722,40 @@ def countLetters(word):
     return counter
 
 
+더 나은 방법: collections.defaultdict
+from collections import defaultdict
+
+def countLetters(word):
+    counter = defaultdict(int)
+    for letter in word:
+        counter[letter] += 1
+    return counter
+여기서 defaultdict 클래스의 생성자로 int 함수를 넘긴 이유는 int()는 0을 리턴하기 때문입니다.
+람다 함수를 활용해서 다음과 같이 int 함수 대신에 lambda: 0를 넘겨도 동일하게 작동을 합니다.
+
+
+
+이번에는 defaultdict 생성자에 list 함수를 넘겼기 때문에,
+grouper 사전에 어떤 글자가 키(key)로 존재하지 않는 경우, 해당 키에 대한 기본값을 비어있는 리스트(empty list)로 세팅해줍니다.
+def groupWords(words):
+    grouper = defaultdict(list)
+    for word in words:
+        length = len(word)
+        grouper[length].append(word)
+    return grouper
+
+위에서 작성한 코드에서 단어들을 길이에 따라 분류할 때 중복되지 않은 단어만 필요하다면 어떻게 해야할까요?
+defaultdict 생성자에 list 함수 대신에 set 함수를 넘기고, append 함수 대신에 add 함수를 이용해서 단어를 넘기면 됩니다. :)
+def groupWords(words):
+    grouper = defaultdict(set)
+    for word in words:
+        length = len(word)
+        grouper[length].add(word)
+    return grouper
+
+
+
+
 
 	# dictionary 정렬, 사전 정렬 [방법 - 1]
 # https://kkamikoon.tistory.com/138
@@ -721,7 +780,7 @@ sdict = sorted(dict.items(), key=operator.itemgetter(1))
 
 	# dictionary 정렬, 사전 정렬 [방법 - 2]
 #https://codechacha.com/ko/python-sorting-dict/
- - Key를 기준으로 정렬 (내림차순)
+ - Key를 기준으로 정렬 (내림차순) # operator를 사용하지 않고 사전 정렬하는 방법.
 내림차순으로 정렬하려면 sorted()에 다음과 같이 reverse = True를 인자로 전달해야 합니다. 여기서 lambda가 인자로 전달되는데 item[0]는 dict의 key를 의미합니다.
 sorted_dict = sorted(my_dict.items(), key = lambda item: item[0], reverse = True)
 print(sorted_dict)
@@ -737,7 +796,7 @@ print(sorted_dict)
  - Value를 기준으로 정렬 (내림차순)
 sorted(ratioDict, key=lambda x : ratioDict[x], reverse=True)
 
-
+───> sorted는 리스트로 받으므로, 마지막에 dict을 씌워주면 리스트대신 다시 딕셔너리로 받을 수도 있다.
 
 
 ---------- Set ----------
@@ -1278,13 +1337,49 @@ def solution(numbers, direction):
         numbers.rotate(-1)
     return list(numbers)
 
+---------- heap ----------
+import heapq
+import heapq as hq
+
+ - 우선순위 큐 알고리즘이라고도 하는 힙(heap) 큐 알고리즘
+ - 힙의 흥미로운 특성은 가장 작은 요소가 항상 루트인 heap[0]이라는 것
+
+ -  heapq.heapify(x)
+	: 리스트 x를 선형 시간으로 제자리에서 힙으로 변환합니다.
+
+ - heapq.heappush(heap, item)
+    : 힙 불변성을 유지하면서, item 값을 heap으로 푸시합니다.
+
+ - heapq.heappop(heap)
+	: 힙 불변성을 유지하면서, heap에서 가장 작은 항목을 팝하고 반환합니다.
+	  힙이 비어 있으면, IndexError가 발생합니다. 팝 하지 않고 가장 작은 항목에 액세스하려면, heap[0]을 사용하십시오.
+
+ - heapq.heappushpop(heap, item)
+	: 힙에 item을 푸시한 다음, heap에서 가장 작은 항목을 팝하고 반환합니다.
+	  결합한 액션은 heappush()한 다음 heappop()을 별도로 호출하는 것보다 더 효율적으로 실행합니다.
+
+ - heapq.nlargest(n, iterable, key=None)
+	: iterable에 의해 정의된 데이터 집합에서 n 개의 가장 큰 요소로 구성된 리스트를 반환합니다.
+	  key가 제공되면 iterable의 각 요소에서 비교 키를 추출하는 데 사용되는 단일 인자 함수를 지정합니다 (예를 들어, key=str.lower). 다음과 동등합니다: sorted(iterable, key=key, reverse=True)[:n].
+
+ - heapq.nsmallest(n, iterable, key=None)
+	: iterable에 의해 정의된 데이터 집합에서 n 개의 가장 작은 요소로 구성된 리스트를 반환합니다.
+	  key가 제공되면 iterable의 각 요소에서 비교 키를 추출하는 데 사용되는 단일 인자 함수를 지정합니다 (예를 들어, key=str.lower). 다음과 동등합니다: sorted(iterable, key=key)[:n].
+
+# heapq 활용예시1
+import heapq
+def solution(scoville, K):
+    answer = 0
+    heapq.heapify(scoville)
+
+    while scoville[0] < K:
+        mix = heapq.heappop(scoviile) + (heapq.heappop(scoviile) * 2
+        heapq.heappush(scoville, mix)
+        answer += 1
+        if len(scoville) == 1 and scoville[0] < K:
+            return -1
+
+    return answer
 
 
-
-
-
-
-
-
-
-──────────────────────────────────────────────────────────────────────────────────────────
+───────────────────────────────────────/───────────────────────────────────────────────────

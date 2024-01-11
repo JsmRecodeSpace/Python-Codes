@@ -2388,8 +2388,20 @@ import joblib
 joblib.dump(Extra_clf, 'Extra_clf_bayesian.pkl')
 
 
+# pickle
+pickle은 파이썬의 모든 객체(object)에 대해서 있는 그대로 저장할 수 있는 모듈입니다. pickle은 객체를 바이너리 파일에 저장하기 때문에 아래와 같이 파일을 읽을 때 'wb', 'rb' 처럼 바이너리 형식을 사용해야 합니다.
 
+pickle.dump / pickle.load
+import pickle
+temp_dict = {'name': 'S', 'id': 1}
 
+# pkl 저장
+with open('test.pkl', 'wb') as f:
+    pickle.dump(a, f)
+
+# pkl 불러오기
+with open('test.pkl', 'rb') as f:
+    b = pickle.load(f)
 
 
 

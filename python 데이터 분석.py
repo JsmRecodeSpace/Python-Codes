@@ -1,14 +1,21 @@
 
 
-    # 전체흐름, 과정
-* Array
-* Numpy
-* Pandas
-* Pandas Visualization
-* Matplotlib Visualization
-* Seaborn Visualization
-* Import codes
-* 연습문제들
+    # 목차
+----- Array ------
+----- Numpy ------
+----- Pandas ------
+----- Pandas Visualization ------
+----- Matplotlib Visualization ------
+----- Seaborn Visualization ------
+----- Import codes ------
+----- 연습문제들 ------
+
+
+
+
+
+
+
 
 
 
@@ -353,6 +360,21 @@ x = df.copy() # df수정되도 이후에 x는 변경사항 없음
 repl_data = string_data.copy() #원본 유지를 위해서
 
 
+## 최빈값 (mode)
+DataFrame.mode(axis=0, numeric_only=False, dropna=True)
+ - mode메서드는 대상 행/열의 최빈값을 구하는 메서드입니다.
+ - 최빈값이 여러개일 경우 모두 표시합니다.
+
+df.mode(axis=0, numeric_only=False, dropna=True)
+axis : {0 : index / 1 : columns} 최빈값을 구할 축 입니다.
+numeric_only : True일 경우 숫자, 소수, 부울값만 있는 열에대해서만 연산을 수행합니다.
+dropna : 결측치를 계산에서 제외할지 여부입니다. False일 경우 결측치도 계산에 포함됩니다.
+
+print(df.mode(dropna=False))
+
+
+
+
 
 ## Query
 df.query('year in [2000,2001] and state =="Ohio"')
@@ -400,6 +422,12 @@ df.loc[:2,['state','pop']]
     # loc에 조건식을 넣어서 인덱싱할 수도 있다
 df.loc[df.year>2001, 'state':'pop']
 df.loc[df['pop']>df['pop'].mean(), ['year','pop']]
+
+
+
+## 글자 포함 여부 확인 contains
+df[df['공간제목'].str.contains('소설원')]
+
 
 
 
@@ -492,6 +520,13 @@ lc_loans.grade.value_counts(
     dropna=True,     # 기본적으로 na값을 제외하고 계산됨
 )
 
+    # Bins 사용법
+ - 정수나 리스트를 bins 인수에 전달합니다
+ - 정수를 전달하면, 입력에 따라 값이 동일한 크기의 bin으로 분할됩니다.
+ - 리스트를 전달하면, 리스트에 지정된 간격에 따라 값이 binning 됩니다.
+exData['score'].value_counts(bins=[70,80,90,100], sort=False)
+
+
 
 
 ## unique()
@@ -573,7 +608,7 @@ f.주구매상품대분류 = f.주구매상품대분류.map(dict(zip(str_name, n
 
 
 
-## Renaming Columns
+## Renaming Columns 컬럼명 변경
 df = df.rename(columns = {'model_year':'year'})
     # inplace 인자를 줄 수도 있음
 df.rename(columns = {'pop': '인구', 'state':'주', 'year':'연도'}, inplace=True)
@@ -636,6 +671,13 @@ pd.concat([s1,s1], keys = ['s1','s2'], names=['Series name', 'Row ID'])
 
 
 ## Drop_Duplitcates 메소드
+기본 사용법
+df.drop_duplicates(subset=None, keep='first', inplace=False, ignore_index=False)
+subset : 중복값을 검사할 열 입니다. 기본적으로 모든 열을 검사합니다.
+keep : {first / last} 중복제거를할때 남길 행입니다. first면 첫값을 남기고 last면 마지막 값을 남깁니다.
+inplace : 원본을 변경할지의 여부입니다.
+ignore_index : 원래 index를 무시할지 여부입니다. True일 경우 0,1,2, ... , n으로 부여됩니다.
+
 df.drop_duplicates()
 data.drop_duplicates(['k1'])
     # inplace인자와 ignore_index 인자도 있다.
@@ -646,6 +688,14 @@ df.drop_duplicates(keep = 'first')
 df.drop_duplicates(keep = 'last')
 data.drop_duplicates(['k1', 'k2'], keep='last')
 
+
+## 중복 행 찾기, 중복 행 없애기
+- 중복된 값이 어떤 것인지 가지고 오기
+test_df[test_df.duplicated()]
+ 
+- 중복된 값을 없애고, 테이블을 가지고 올 때 
+test_df[~test_df.duplicated()]
+출처: https://bramhyun.tistory.com/66 [日日新又日新:티스토리]
 
 
 ## Rank 메소드 : 칼럼 순서 바뀌는 것 없이 칼럼별로 순위의 동률을 처리하는 메서드
