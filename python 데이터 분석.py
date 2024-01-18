@@ -316,7 +316,10 @@ exam.to_excel('exam.xlsx', index=False)
 examf.to_csv('examf.csv', index=False) # index=True로 하면 앞에 Unnamed: 0 으로 인덱스가 새파일에 열로써 추가 됨.
        .to_csv('Demo2.csv', index=False, encoding = 'cp949')
 
-
+# 오늘날짜
+now = datetime.datetime.now()
+nowDate = now.strftime('%Y-%m-%d')
+nowDate
 
 ## 데이터 정보 체크 메소드 / Check Datas
     # 데이터 구조

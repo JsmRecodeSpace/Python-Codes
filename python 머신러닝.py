@@ -1669,7 +1669,10 @@ now = datetime.datetime.now()
 nowDate = now.strftime('%Y-%m-%d')
 joblib.dump(RS_tuned_regs,f'./MODELS/RS_tuned_regs_{nowDate}.pkl')
 
-
+# 오늘날짜
+now = datetime.datetime.now()
+nowDate = now.strftime('%Y-%m-%d')
+nowDate
 
 
     # Bayesian Optimization, 베이지안 최적화

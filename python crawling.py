@@ -17,9 +17,51 @@
 
 ------------- 라이브러리 -------------
 
+# 기본
+import requests
+
+import warnings
+warnings.filterwarnings('ignore')
+
+# 셀레늄
+pip install chromedriver_autoinstaller
+import chromedriver_autoinstaller
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions
+
+
+# 뷰티풀솝
+from bs4 import BeautifulSoup
+
+# 그 외 동작기능
+import time
+from urllib.request import urlretrieve
+
+# 엑셀
+import openpyxl
+
+# 데이터분석, 데이터전처리
+import pandas as pd
+
+# 데이터 시각화
+import matplotlib.pyplot as plt
+from matplotlib import rc
+plt.rc('font', family='malgun gothic')
+plt.rc('axes', unicode_minus=False)
+import seaborn as sns
+
+# 저장
+import datetime
+
+# DB?
+from const import DB_PATH
+
+
 
 
 
